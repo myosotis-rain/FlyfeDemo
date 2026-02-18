@@ -1,43 +1,28 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class UIManager : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private Image timerBarImage;
-    [SerializeField] private Button recordButton;
+    public Image timerBarImage; 
+    public Text btnText;
 
-    private TextMeshProUGUI buttonText;
+    void OnEnable() => RecordManager.OnWorldChanged += UpdateUI;
+    void OnDisable() => RecordManager.OnWorldChanged -= UpdateUI;
 
-    private void Awake()
+    void Update()
     {
-        if (recordButton != null)
-            buttonText = recordButton.GetComponentInChildren<TextMeshProUGUI>();
-    }
-
-    private void OnEnable()
-    {
-        RecordManager.OnStateChanged += HandleVisualSwap;
-    }
-
-    private void OnDisable()
-    {
-        RecordManager.OnStateChanged -= HandleVisualSwap;
-    }
-
-    private void Update()
-    {
-        if (RecordManager.Instance != null && timerBarImage != null &&
-            RecordManager.Instance.CurrentState == RecordManager.State.Memory)
+        if (RecordManager.Instance.CurrentState == RecordManager.WorldState.Memory && timerBarImage != null)
         {
-            timerBarImage.fillAmount = RecordManager.Instance.GetProgress();
+            timerBarImage.fillAmount = 1f - RecordManager.Instance.GetProgress();
         }
     }
 
-    private void HandleVisualSwap(RecordManager.State newState)
+    void UpdateUI(RecordManager.WorldState state)
     {
-        if (buttonText != null)
-            buttonText.text = newState == RecordManager.State.Memory ? "Stop" : "Record";
+        bool isMemory = state == RecordManager.WorldState.Memory;
+        if (timerBarImage) timerBarImage.gameObject.SetActive(isMemory);
+        if (btnText) btnText.text = isMemory ? "RETURN" : "RECORD";
     }
+
+    public void OnClickRecord() => RecordManager.Instance.ToggleRecord();
 }

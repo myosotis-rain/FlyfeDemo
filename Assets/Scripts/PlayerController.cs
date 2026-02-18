@@ -1,53 +1,49 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
     public float moveSpeed = 8f;
     public float jumpForce = 12f;
     public LayerMask groundLayer;
+    public Transform playerGroundCheck;
 
-    [Header("Ground Check")]
-    public Transform groundCheck;
-    public float groundCheckRadius = 0.2f;
+    private Rigidbody2D _playerRb;
 
-    private Rigidbody2D rb;
-    private float moveInput;
-    private bool isGrounded;
-
-    void Awake() => rb = GetComponent<Rigidbody2D>();
+    void Awake() => _playerRb = GetComponent<Rigidbody2D>();
 
     void Update()
     {
-        moveInput = 0;
+        float moveInput = 0;
         if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) moveInput = -1;
         if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) moveInput = 1;
 
-        if (groundCheck != null)
+        Rigidbody2D targetRb = _playerRb;
+        Transform targetFeet = playerGroundCheck;
+
+        // Redirect input if recording
+        if (RecordManager.Instance != null && RecordManager.Instance.IsRecordingShadow)
         {
-            isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-            if (isGrounded && Keyboard.current.spaceKey.wasPressedThisFrame)
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            if (RecordManager.Instance.ActiveShadowRb != null)
+            {
+                targetRb = RecordManager.Instance.ActiveShadowRb;
+                targetFeet = RecordManager.Instance.ActiveShadowFeet;
+            }
         }
-    }
 
-    void FixedUpdate()
-    {
-        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+        if (targetRb != null)
+        {
+            targetRb.WakeUp();
+            targetRb.linearVelocity = new Vector2(moveInput * moveSpeed, targetRb.linearVelocity.y);
 
-        if (RecordManager.Instance != null && RecordManager.Instance.CurrentState == RecordManager.State.Memory)
-            HandleRecording();
-    }
-
-    private void HandleRecording()
-    {
-        string platformName = "";
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 1.5f, groundLayer);
-        if (hit.collider != null)
-            platformName = hit.collider.gameObject.name;
-
-        RecordManager.Instance.AddFrame(transform.position, platformName);
+            if (targetFeet != null)
+            {
+                bool isGrounded = Physics2D.OverlapCircle(targetFeet.position, 0.25f, groundLayer);
+                if (isGrounded && Keyboard.current.spaceKey.wasPressedThisFrame)
+                {
+                    targetRb.linearVelocity = new Vector2(targetRb.linearVelocity.x, jumpForce);
+                }
+            }
+        }
     }
 }

@@ -1,49 +1,41 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ShadowReplay : MonoBehaviour
 {
-    private List<RecordManager.FrameData> _frames;
-    private int _index;
-    private bool _playing;
+    private List<Vector3> _frames;
+    private int _index = 0;
+    private bool _active = false;
 
-    private Action _onFinish;
-
-    public void Init(List<RecordManager.FrameData> frames, Action onFinish = null)
+    public void Init(List<Vector3> recordedFrames)
     {
-        _frames = frames;
-        _index = 0;
-        _playing = true;
-        _onFinish = onFinish;
+        _frames = recordedFrames;
+        _active = true;
+
+        // Ghosts should be Kinematic/Non-simulated to act as platforms or guides
+        if (TryGetComponent<Rigidbody2D>(out var rb))
+        {
+            rb.simulated = false; // Prevents it from falling or reacting to physics
+        }
+        
+        // If you want to JUMP on the ghost, keep the Collider enabled. 
+        // If you want to walk THROUGH it, disable the Collider:
+        // if (TryGetComponent<Collider2D>(out var col)) col.enabled = false;
     }
 
     void FixedUpdate()
     {
-        if (!_playing || _frames == null || _index >= _frames.Count)
+        if (!_active || _frames == null) return;
+
+        if (_index < _frames.Count)
         {
-            _playing = false;
-            _onFinish?.Invoke();
-            Destroy(gameObject);
-            return;
-        }
-
-        var data = _frames[_index];
-
-        if (!string.IsNullOrEmpty(data.platformName))
-        {
-            GameObject plat = GameObject.Find(data.platformName);
-
-            if (plat != null)
-                transform.position = plat.transform.TransformPoint(data.position);
-            else
-                transform.position = data.position;
+            transform.position = _frames[_index];
+            _index++;
         }
         else
         {
-            transform.position = data.position;
+            // When the recording ends, the ghost stays at its last frame
+            _active = false; 
         }
-
-        _index++;
     }
 }

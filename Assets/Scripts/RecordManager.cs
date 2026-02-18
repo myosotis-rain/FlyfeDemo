@@ -1,165 +1,140 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class RecordManager : MonoBehaviour
 {
     public static RecordManager Instance { get; private set; }
+    public static event Action<WorldState> OnWorldChanged;
 
-    public static event Action<State> OnStateChanged;
-
-    public enum State
-    {
-        Present,
-        Memory
-    }
-
-    public State CurrentState { get; private set; } = State.Present;
+    public enum WorldState { Present, Memory }
+    public WorldState CurrentState { get; private set; } = WorldState.Present;
 
     [Header("Worlds")]
-    public GameObject presentWorld;
-    public GameObject memoryWorld;
+    public GameObject presentWorldFolder;
+    public GameObject memoryWorldFolder;
 
-    [Header("Recording")]
-    public float maxRecordTime = 6f;
+    [Header("Prefabs & Roots")]
     public GameObject shadowPrefab;
-    public GameObject playerAnchorPrefab;
+    public Transform actorRoot; 
 
-    private float _timer;
-    private Vector3 _anchorPosition;
-
-    private List<FrameData> _frames = new List<FrameData>();
+    [Header("Recording Settings")]
+    public float maxRecordTime = 6f;
+    public Image timerBarImage;
 
     private GameObject _activeShadow;
-    private GameObject _activeAnchor;
+    private Rigidbody2D _playerRb;
+    private List<Vector3> _recordedFrames = new List<Vector3>();
+    private Vector3 _anchorPos;
+    private float _timer;
+    private bool _isRecording = false;
 
-    [Serializable]
-    public struct FrameData
-    {
-        public Vector3 position;
-        public string platformName;
-    }
+    public Rigidbody2D ActiveShadowRb { get; private set; }
+    public Transform ActiveShadowFeet { get; private set; }
+    public bool IsRecordingShadow => _isRecording;
 
     void Awake()
     {
-        Instance = this;
-        SwapWorld(State.Present);
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player) _playerRb = player.GetComponent<Rigidbody2D>();
+        
+        SwapWorld(WorldState.Present);
     }
 
     void FixedUpdate()
     {
-        if (CurrentState != State.Memory) return;
+        if (!_isRecording || ActiveShadowRb == null) return;
 
         _timer += Time.fixedDeltaTime;
+        if (timerBarImage) timerBarImage.fillAmount = GetProgress();
 
-        if (_timer >= maxRecordTime)
-            EndRecording();
+        _recordedFrames.Add(ActiveShadowRb.position);
+
+        if (_timer >= maxRecordTime) EndRecording();
     }
 
-    // ---------- PUBLIC BUTTON CALL ----------
     public void ToggleRecord()
     {
-        if (CurrentState == State.Present)
-            StartRecording();
-        else
-            EndRecording();
+        if (!_isRecording) StartRecording();
+        else EndRecording();
     }
 
-    // ---------- RECORD START ----------
+    public float GetProgress() => Mathf.Clamp01(_timer / maxRecordTime);
+
+    public void ForceResetToPresent() => EndRecording();
+
     private void StartRecording()
     {
-        var player = GameObject.FindGameObjectWithTag("Player");
+        if (!shadowPrefab || !_playerRb) return;
 
-        _frames.Clear();
+        // 1. CLEANUP DUPLICATES: Wipe the previous ghost and any active shadows
+        CleanupShadows();
+
+        _isRecording = true;
         _timer = 0f;
+        _recordedFrames.Clear();
+        _anchorPos = _playerRb.transform.position;
 
-        _anchorPosition = player.transform.position;
+        // 2. FREEZE PLAYER
+        _playerRb.simulated = false;
+        _playerRb.linearVelocity = Vector2.zero;
 
-        if (_activeShadow != null)
-            Destroy(_activeShadow);
+        // 3. SPAWN ACTIVE SHADOW
+        _activeShadow = Instantiate(shadowPrefab, _anchorPos, Quaternion.identity, actorRoot);
+        _activeShadow.name = "ACTIVE_RECORDING_SHADOW";
+        
+        ActiveShadowRb = _activeShadow.GetComponent<Rigidbody2D>();
+        ActiveShadowFeet = _activeShadow.transform.Find("ShadowGroundCheck");
 
-        if (_activeAnchor != null)
-            Destroy(_activeAnchor);
-
-        if (playerAnchorPrefab != null)
-            _activeAnchor = Instantiate(playerAnchorPrefab, _anchorPosition, Quaternion.identity);
-
-        SwapWorld(State.Memory);
+        SwapWorld(WorldState.Memory);
     }
 
-    // ---------- RECORD END ----------
     private void EndRecording()
     {
-        SwapWorld(State.Present);
+        if (!_isRecording) return;
+        _isRecording = false;
 
-        var player = GameObject.FindGameObjectWithTag("Player");
-        player.transform.position = _anchorPosition;
+        // 1. RESTORE PLAYER
+        _playerRb.simulated = true;
+        _playerRb.transform.position = _anchorPos;
 
-        SpawnShadowReplay();
-    }
-
-    // ---------- WORLD SWAP ----------
-    private void SwapWorld(State newState)
-    {
-        CurrentState = newState;
-
-        if (presentWorld != null)
-            presentWorld.SetActive(newState == State.Present);
-
-        if (memoryWorld != null)
-            memoryWorld.SetActive(newState == State.Memory);
-
-        OnStateChanged?.Invoke(CurrentState);
-    }
-
-    // ---------- FRAME ADD ----------
-    public void AddFrame(Vector3 worldPos, string platformName)
-    {
-        if (CurrentState != State.Memory) return;
-
-        Vector3 finalPos = worldPos;
-
-        if (!string.IsNullOrEmpty(platformName))
+        // 2. SPAWN GHOST INTO PRESENT WORLD
+        if (_recordedFrames.Count > 10)
         {
-            GameObject plat = GameObject.Find(platformName);
-            if (plat != null)
-                finalPos = plat.transform.InverseTransformPoint(worldPos);
+            // Parenting to presentWorldFolder keeps it visible after swap
+            GameObject ghost = Instantiate(shadowPrefab, _anchorPos, Quaternion.identity, presentWorldFolder.transform);
+            ghost.name = "REPLAY_GHOST";
+            ghost.GetComponent<ShadowReplay>()?.Init(new List<Vector3>(_recordedFrames));
         }
 
-        _frames.Add(new FrameData
-        {
-            position = finalPos,
-            platformName = platformName
-        });
+        // 3. DESTROY ACTIVE RECORDING SHADOW
+        if (_activeShadow) Destroy(_activeShadow);
+        ActiveShadowRb = null;
+        ActiveShadowFeet = null;
+        
+        SwapWorld(WorldState.Present);
+        if (timerBarImage) timerBarImage.fillAmount = 0;
     }
 
-    // ---------- SHADOW SPAWN ----------
-    private void SpawnShadowReplay()
+    private void CleanupShadows()
     {
-        if (_frames.Count == 0 || shadowPrefab == null) return;
+        // Find by name to ensure we only kill what we intend to
+        GameObject oldGhost = GameObject.Find("REPLAY_GHOST");
+        if (oldGhost) Destroy(oldGhost);
 
-        _activeShadow = Instantiate(shadowPrefab, _frames[0].position, Quaternion.identity);
-
-        ShadowReplay replay = _activeShadow.GetComponent<ShadowReplay>();
-        replay.Init(new List<FrameData>(_frames));
+        GameObject oldActive = GameObject.Find("ACTIVE_RECORDING_SHADOW");
+        if (oldActive) Destroy(oldActive);
     }
 
-
-    // ---------- UI ----------
-    public float GetProgress()
+    private void SwapWorld(WorldState state)
     {
-        return Mathf.Clamp01(_timer / maxRecordTime);
-    }
-
-    // ---------- SAFE RESET ----------
-    public void ForceResetToPresent()
-    {
-        SwapWorld(State.Present);
-
-        if (_activeShadow != null)
-            Destroy(_activeShadow);
-
-        if (_activeAnchor != null)
-            Destroy(_activeAnchor);
+        CurrentState = state;
+        if (presentWorldFolder) presentWorldFolder.SetActive(state == WorldState.Present);
+        if (memoryWorldFolder) memoryWorldFolder.SetActive(state == WorldState.Memory);
+        OnWorldChanged?.Invoke(CurrentState);
     }
 }
