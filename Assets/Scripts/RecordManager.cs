@@ -49,8 +49,11 @@ public class RecordManager : MonoBehaviour
     {
         if (!_isRecording || ActiveShadowRb == null) return;
         _timer += Time.fixedDeltaTime;
+        
         if (timerBarImage) timerBarImage.fillAmount = GetProgress();
+        
         _recordedFrames.Add(ActiveShadowRb.position);
+        
         if (_timer >= maxRecordTime) EndRecording();
     }
 
@@ -60,14 +63,17 @@ public class RecordManager : MonoBehaviour
         else EndRecording();
     }
 
+    // RESTORED: Required by your UI Timer
     public float GetProgress() => Mathf.Clamp01(_timer / maxRecordTime);
 
+    // RESTORED: Required by your PlayerRespawn script
     public void ForceResetToPresent()
     {
         if (_isRecording) EndRecording();
-        else {
-            CleanupShadows();
-            SwapWorld(WorldState.Present);
+        else 
+        { 
+            CleanupShadows(); 
+            SwapWorld(WorldState.Present); 
         }
     }
 
@@ -81,42 +87,48 @@ public class RecordManager : MonoBehaviour
         _recordedFrames.Clear();
         _anchorPos = _playerRb.transform.position;
 
-        _playerRb.simulated = false;
-        _playerRb.linearVelocity = Vector2.zero;
+        // 1. Calculate Offset from platform manually
+        Vector3 playerOffset = Vector3.zero;
+        KinematicPlatform platformUnderPlayer = null;
+        RaycastHit2D hit = Physics2D.Raycast(_playerRb.position, Vector2.down, 1.2f);
+        if (hit.collider != null && hit.collider.TryGetComponent(out platformUnderPlayer))
+        {
+            playerOffset = _playerRb.transform.position - platformUnderPlayer.transform.position;
+        }
 
-        _activeShadow = Instantiate(shadowPrefab, _playerRb.transform.position, Quaternion.identity, actorRoot);
+        // 2. Freeze Player
+        _playerRb.simulated = false;
+
+        // 3. Reset Platforms
+        KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
+        foreach (var p in platforms) p.ResetState();
+
+        // 4. Snap Player to Platform Start
+        Vector3 snapPos = _playerRb.transform.position;
+        if (platformUnderPlayer != null)
+        {
+            snapPos = platformUnderPlayer.transform.position + playerOffset;
+            _playerRb.transform.position = snapPos;
+        }
+
+        // 5. Spawn Shadow (Parented to actorRoot to keep scale at 1,1,1)
+        _activeShadow = Instantiate(shadowPrefab, snapPos, Quaternion.identity, actorRoot);
         _activeShadow.name = "ACTIVE_RECORDING_SHADOW";
         _activeShadow.tag = "Shadow"; 
-        _activeShadow.layer = LayerMask.NameToLayer("Shadow");
         
         ActiveShadowRb = _activeShadow.GetComponent<Rigidbody2D>();
         ActiveShadowFeet = _activeShadow.transform.Find("ShadowGroundCheck");
 
-        if (_playerRb.transform.parent != null)
-            _activeShadow.transform.SetParent(_playerRb.transform.parent);
-
-        KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
-        foreach (var p in platforms) p.ResetState();
-
         SwapWorld(WorldState.Memory);
     }
 
-    private void EndRecording()
+    public void EndRecording()
     {
         if (!_isRecording) return;
         _isRecording = false;
 
-        // --- THE CRITICAL FIX: MANUAL DETACH BEFORE SWAP ---
         KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
-        foreach (var p in platforms) 
-        {
-            p.ManualReleaseChildren(); // Force platforms to let go BEFORE deactivating
-            p.ResetState();
-        }
-
-        // Double safety for the player and active shadow
-        if (_playerRb.transform.parent != null) _playerRb.transform.SetParent(null);
-        if (_activeShadow && _activeShadow.transform.parent != null) _activeShadow.transform.SetParent(null);
+        foreach (var p in platforms) p.ResetState();
 
         _playerRb.simulated = true;
         _playerRb.transform.position = _anchorPos;
@@ -126,27 +138,20 @@ public class RecordManager : MonoBehaviour
             GameObject ghost = Instantiate(shadowPrefab, _recordedFrames[0], Quaternion.identity, presentWorldFolder.transform);
             ghost.name = "REPLAY_GHOST";
             ghost.tag = "Shadow";
-            ghost.layer = LayerMask.NameToLayer("Shadow");
             ghost.GetComponent<ShadowReplay>()?.Init(new List<Vector3>(_recordedFrames));
         }
 
-        if (_activeShadow) 
-        {
-            _activeShadow.SetActive(false); 
-            Destroy(_activeShadow);
-        }
-        
-        ActiveShadowRb = null;
-        ActiveShadowFeet = null;
+        if (_activeShadow) { _activeShadow.SetActive(false); Destroy(_activeShadow); }
+        ActiveShadowRb = null; ActiveShadowFeet = null;
         SwapWorld(WorldState.Present);
         if (timerBarImage) timerBarImage.fillAmount = 0;
     }
 
     private void CleanupShadows()
     {
-        GameObject oldGhost = GameObject.Find("REPLAY_GHOST");
+        var oldGhost = GameObject.Find("REPLAY_GHOST");
         if (oldGhost) Destroy(oldGhost);
-        GameObject oldActive = GameObject.Find("ACTIVE_RECORDING_SHADOW");
+        var oldActive = GameObject.Find("ACTIVE_RECORDING_SHADOW");
         if (oldActive) Destroy(oldActive);
     }
 

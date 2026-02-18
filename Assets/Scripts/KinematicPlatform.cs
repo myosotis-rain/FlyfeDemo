@@ -8,12 +8,15 @@ public class KinematicPlatform : MonoBehaviour
     private Vector3 _startPosition;
     private Vector3 _targetPosition;
     private float _timeOffset;
+    private Vector3 _lastPosition;
+    private BoxCollider2D _col;
 
     void Start()
     {
+        _col = GetComponent<BoxCollider2D>();
         _startPosition = transform.position;
         _targetPosition = _startPosition + travelOffset;
-        _timeOffset = 0;
+        _lastPosition = transform.position;
     }
 
     void FixedUpdate()
@@ -23,52 +26,30 @@ public class KinematicPlatform : MonoBehaviour
 
         float movementFactor = Mathf.PingPong((Time.time + _timeOffset) * transitSpeed / distance, 1f);
         transform.position = Vector3.Lerp(_startPosition, _targetPosition, movementFactor);
+
+        Vector3 delta = transform.position - _lastPosition;
+
+        // Detect anything standing on top
+        Vector2 boxSize = new Vector2(_col.size.x * 0.9f, 0.2f);
+        Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (_col.size.y / 2 + 0.1f);
+        
+        RaycastHit2D[] hits = Physics2D.BoxCastAll(boxCenter, boxSize, 0f, Vector2.up, 0.1f);
+
+        foreach (var hit in hits)
+        {
+            if (hit.collider.CompareTag("Player") || hit.collider.CompareTag("Shadow"))
+            {
+                hit.collider.transform.position += delta;
+            }
+        }
+
+        _lastPosition = transform.position;
     }
 
     public void ResetState() 
     {
         _timeOffset = -Time.time; 
         transform.position = _startPosition;
-    }
-
-    // --- THE FIX: Call this BEFORE deactivating the folder ---
-    public void ManualReleaseChildren()
-    {
-        for (int i = transform.childCount - 1; i >= 0; i--)
-        {
-            Transform child = transform.GetChild(i);
-            if (child.CompareTag("Player") || child.CompareTag("Shadow"))
-            {
-                child.SetParent(null);
-            }
-        }
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player") || collision.gameObject.CompareTag("Shadow"))
-        {
-            foreach (ContactPoint2D contact in collision.contacts)
-            {
-                float platformTop = transform.position.y + (GetComponent<BoxCollider2D>().size.y / 2);
-                if (contact.normal.y < -0.8f && collision.transform.position.y > platformTop - 0.1f) 
-                {
-                    collision.transform.SetParent(transform);
-                    break;
-                }
-            }
-        }
-    }
-
-    private void OnCollisionExit2D(Collision2D collision)
-    {
-        // Safety check: Don't detach if the object is already being disabled
-        if (!gameObject.activeInHierarchy) return;
-
-        if (collision.gameObject.CompareTag("Player") || collision.gameObject.CompareTag("Shadow"))
-        {
-            if (collision.transform.parent == transform)
-                collision.transform.SetParent(null);
-        }
+        _lastPosition = _startPosition;
     }
 }
