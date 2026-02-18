@@ -10,17 +10,15 @@ public class ShadowReplay : MonoBehaviour
     public void Init(List<Vector3> recordedFrames)
     {
         _frames = recordedFrames;
+        _index = 0;
         _active = true;
 
-        // Ghosts should be Kinematic/Non-simulated to act as platforms or guides
         if (TryGetComponent<Rigidbody2D>(out var rb))
         {
-            rb.simulated = false; // Prevents it from falling or reacting to physics
+            rb.simulated = true; 
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.useFullKinematicContacts = true;
         }
-        
-        // If you want to JUMP on the ghost, keep the Collider enabled. 
-        // If you want to walk THROUGH it, disable the Collider:
-        // if (TryGetComponent<Collider2D>(out var col)) col.enabled = false;
     }
 
     void FixedUpdate()
@@ -34,8 +32,8 @@ public class ShadowReplay : MonoBehaviour
         }
         else
         {
-            // When the recording ends, the ghost stays at its last frame
-            _active = false; 
+            _active = false;
+            Destroy(gameObject); 
         }
     }
 }

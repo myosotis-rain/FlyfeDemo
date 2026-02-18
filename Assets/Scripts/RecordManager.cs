@@ -31,7 +31,7 @@ public class RecordManager : MonoBehaviour
     private bool _isRecording = false;
 
     public Rigidbody2D ActiveShadowRb { get; private set; }
-    public Transform ActiveShadowFeet { get; private set; }
+    public Transform ActiveShadowFeet { get; private set; } 
     public bool IsRecordingShadow => _isRecording;
 
     void Awake()
@@ -48,12 +48,9 @@ public class RecordManager : MonoBehaviour
     void FixedUpdate()
     {
         if (!_isRecording || ActiveShadowRb == null) return;
-
         _timer += Time.fixedDeltaTime;
         if (timerBarImage) timerBarImage.fillAmount = GetProgress();
-
         _recordedFrames.Add(ActiveShadowRb.position);
-
         if (_timer >= maxRecordTime) EndRecording();
     }
 
@@ -65,13 +62,18 @@ public class RecordManager : MonoBehaviour
 
     public float GetProgress() => Mathf.Clamp01(_timer / maxRecordTime);
 
-    public void ForceResetToPresent() => EndRecording();
+    public void ForceResetToPresent()
+    {
+        if (_isRecording) EndRecording();
+        else {
+            CleanupShadows();
+            SwapWorld(WorldState.Present);
+        }
+    }
 
     private void StartRecording()
     {
         if (!shadowPrefab || !_playerRb) return;
-
-        // 1. CLEANUP DUPLICATES: Wipe the previous ghost and any active shadows
         CleanupShadows();
 
         _isRecording = true;
@@ -79,16 +81,22 @@ public class RecordManager : MonoBehaviour
         _recordedFrames.Clear();
         _anchorPos = _playerRb.transform.position;
 
-        // 2. FREEZE PLAYER
         _playerRb.simulated = false;
         _playerRb.linearVelocity = Vector2.zero;
 
-        // 3. SPAWN ACTIVE SHADOW
-        _activeShadow = Instantiate(shadowPrefab, _anchorPos, Quaternion.identity, actorRoot);
+        _activeShadow = Instantiate(shadowPrefab, _playerRb.transform.position, Quaternion.identity, actorRoot);
         _activeShadow.name = "ACTIVE_RECORDING_SHADOW";
+        _activeShadow.tag = "Shadow"; 
+        _activeShadow.layer = LayerMask.NameToLayer("Shadow");
         
         ActiveShadowRb = _activeShadow.GetComponent<Rigidbody2D>();
         ActiveShadowFeet = _activeShadow.transform.Find("ShadowGroundCheck");
+
+        if (_playerRb.transform.parent != null)
+            _activeShadow.transform.SetParent(_playerRb.transform.parent);
+
+        KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
+        foreach (var p in platforms) p.ResetState();
 
         SwapWorld(WorldState.Memory);
     }
@@ -98,34 +106,46 @@ public class RecordManager : MonoBehaviour
         if (!_isRecording) return;
         _isRecording = false;
 
-        // 1. RESTORE PLAYER
+        // --- THE CRITICAL FIX: MANUAL DETACH BEFORE SWAP ---
+        KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
+        foreach (var p in platforms) 
+        {
+            p.ManualReleaseChildren(); // Force platforms to let go BEFORE deactivating
+            p.ResetState();
+        }
+
+        // Double safety for the player and active shadow
+        if (_playerRb.transform.parent != null) _playerRb.transform.SetParent(null);
+        if (_activeShadow && _activeShadow.transform.parent != null) _activeShadow.transform.SetParent(null);
+
         _playerRb.simulated = true;
         _playerRb.transform.position = _anchorPos;
 
-        // 2. SPAWN GHOST INTO PRESENT WORLD
         if (_recordedFrames.Count > 10)
         {
-            // Parenting to presentWorldFolder keeps it visible after swap
-            GameObject ghost = Instantiate(shadowPrefab, _anchorPos, Quaternion.identity, presentWorldFolder.transform);
+            GameObject ghost = Instantiate(shadowPrefab, _recordedFrames[0], Quaternion.identity, presentWorldFolder.transform);
             ghost.name = "REPLAY_GHOST";
+            ghost.tag = "Shadow";
+            ghost.layer = LayerMask.NameToLayer("Shadow");
             ghost.GetComponent<ShadowReplay>()?.Init(new List<Vector3>(_recordedFrames));
         }
 
-        // 3. DESTROY ACTIVE RECORDING SHADOW
-        if (_activeShadow) Destroy(_activeShadow);
+        if (_activeShadow) 
+        {
+            _activeShadow.SetActive(false); 
+            Destroy(_activeShadow);
+        }
+        
         ActiveShadowRb = null;
         ActiveShadowFeet = null;
-        
         SwapWorld(WorldState.Present);
         if (timerBarImage) timerBarImage.fillAmount = 0;
     }
 
     private void CleanupShadows()
     {
-        // Find by name to ensure we only kill what we intend to
         GameObject oldGhost = GameObject.Find("REPLAY_GHOST");
         if (oldGhost) Destroy(oldGhost);
-
         GameObject oldActive = GameObject.Find("ACTIVE_RECORDING_SHADOW");
         if (oldActive) Destroy(oldActive);
     }
