@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     public float jumpForce = 12f;
     public LayerMask groundLayer;
 
-    [Header("Detection")]
+    [Header("Ground Check")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.2f;
 
@@ -29,9 +29,7 @@ public class PlayerController : MonoBehaviour
         {
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
             if (isGrounded && Keyboard.current.spaceKey.wasPressedThisFrame)
-            {
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-            }
         }
     }
 
@@ -40,17 +38,15 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
         if (RecordManager.Instance != null && RecordManager.Instance.CurrentState == RecordManager.State.Memory)
-        {
             HandleRecording();
-        }
     }
 
     private void HandleRecording()
     {
-        // Record player's world position and platform name (optional)
         string platformName = "";
         RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 1.5f, groundLayer);
-        if (hit.collider != null) platformName = hit.collider.gameObject.name;
+        if (hit.collider != null)
+            platformName = hit.collider.gameObject.name;
 
         RecordManager.Instance.AddFrame(transform.position, platformName);
     }

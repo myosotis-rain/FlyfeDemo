@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 public class PlayerRespawn : MonoBehaviour
 {
     public float fallThreshold = -10f;
-    public Transform respawnPoint; // Optional: Drag an empty GameObject here
+    public Transform respawnPoint;
 
     Rigidbody2D rb;
 
@@ -16,13 +16,15 @@ public class PlayerRespawn : MonoBehaviour
     void Update()
     {
         if (transform.position.y < fallThreshold)
-        {
             Respawn();
-        }
     }
 
     public void Respawn()
     {
+        // Always force present world on death
+        if (RecordManager.Instance != null)
+            RecordManager.Instance.ForceResetToPresent();
+
         if (respawnPoint != null)
         {
             transform.position = respawnPoint.position;
@@ -30,7 +32,6 @@ public class PlayerRespawn : MonoBehaviour
         }
         else
         {
-            // Reload scene if no point set
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }

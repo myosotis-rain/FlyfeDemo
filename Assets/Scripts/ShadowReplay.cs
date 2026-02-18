@@ -1,30 +1,49 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ShadowReplay : MonoBehaviour
 {
     private List<RecordManager.FrameData> _frames;
-    private int _currentFrame = 0;
-    private bool _isReplaying = false;
+    private int _index;
+    private bool _playing;
 
-    public void Init(List<RecordManager.FrameData> frames)
+    private Action _onFinish;
+
+    public void Init(List<RecordManager.FrameData> frames, Action onFinish = null)
     {
         _frames = frames;
-        _currentFrame = 0;
-        _isReplaying = true;
+        _index = 0;
+        _playing = true;
+        _onFinish = onFinish;
     }
 
     void FixedUpdate()
     {
-        if (!_isReplaying || _frames == null || _currentFrame >= _frames.Count)
+        if (!_playing || _frames == null || _index >= _frames.Count)
         {
-            _isReplaying = false;
-            Destroy(gameObject); // auto destroy when done
+            _playing = false;
+            _onFinish?.Invoke();
+            Destroy(gameObject);
             return;
         }
 
-        RecordManager.FrameData data = _frames[_currentFrame];
-        transform.position = data.position; // world position only
-        _currentFrame++;
+        var data = _frames[_index];
+
+        if (!string.IsNullOrEmpty(data.platformName))
+        {
+            GameObject plat = GameObject.Find(data.platformName);
+
+            if (plat != null)
+                transform.position = plat.transform.TransformPoint(data.position);
+            else
+                transform.position = data.position;
+        }
+        else
+        {
+            transform.position = data.position;
+        }
+
+        _index++;
     }
 }

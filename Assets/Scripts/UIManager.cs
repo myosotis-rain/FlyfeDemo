@@ -1,33 +1,43 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
-    [SerializeField] private Slider progressSlider;
-    [SerializeField] private GameObject memoryOverlay;
+    [Header("UI References")]
+    [SerializeField] private Image timerBarImage;
+    [SerializeField] private Button recordButton;
 
-    void OnEnable()
+    private TextMeshProUGUI buttonText;
+
+    private void Awake()
+    {
+        if (recordButton != null)
+            buttonText = recordButton.GetComponentInChildren<TextMeshProUGUI>();
+    }
+
+    private void OnEnable()
     {
         RecordManager.OnStateChanged += HandleVisualSwap;
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
         RecordManager.OnStateChanged -= HandleVisualSwap;
     }
 
-    void Update()
+    private void Update()
     {
-        if (RecordManager.Instance.CurrentState == RecordManager.State.Memory)
+        if (RecordManager.Instance != null && timerBarImage != null &&
+            RecordManager.Instance.CurrentState == RecordManager.State.Memory)
         {
-            progressSlider.value = RecordManager.Instance.GetProgress();
+            timerBarImage.fillAmount = RecordManager.Instance.GetProgress();
         }
     }
 
     private void HandleVisualSwap(RecordManager.State newState)
     {
-        bool isMemory = (newState == RecordManager.State.Memory);
-        memoryOverlay.SetActive(isMemory);
-        progressSlider.gameObject.SetActive(isMemory);
+        if (buttonText != null)
+            buttonText.text = newState == RecordManager.State.Memory ? "Stop" : "Record";
     }
 }
