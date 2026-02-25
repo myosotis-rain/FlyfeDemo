@@ -9,6 +9,7 @@ public class ShadowReplay : MonoBehaviour
     private List<Vector3> _frames;
     private int _index = 0;
     private bool _active = false;
+    private SpriteRenderer _spriteRenderer;
 
     public float ReplayProgress => (_frames != null && _frames.Count > 0) ? (float)_index / _frames.Count : 0f;
 
@@ -17,12 +18,19 @@ public class ShadowReplay : MonoBehaviour
         _frames = recordedFrames;
         _index = 0;
         _active = true;
+        _spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (TryGetComponent<Rigidbody2D>(out var rb))
         {
             rb.simulated = true; 
             rb.bodyType = RigidbodyType2D.Kinematic;
             rb.useFullKinematicContacts = true;
+        }
+
+        // Gray out the replay ghost to differentiate it from the player
+        if (_spriteRenderer != null)
+        {
+            _spriteRenderer.color = Color.gray;
         }
     }
 

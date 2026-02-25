@@ -91,4 +91,12 @@ public class UIManager : MonoBehaviour
     }
 
     public void OnClickRecord() => RecordingService.Instance.ToggleRecord();
+
+    public void OnClickReplay()
+    {
+        if (RecordingService.Instance != null)
+        {
+            RecordingService.Instance.PlayLatestRecording();
+        }
+    }
 }
