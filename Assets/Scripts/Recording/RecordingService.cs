@@ -2,12 +2,27 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Cinemachine; // Updated for Unity 6+ Cinemachine
 
+[System.Serializable]
+public struct RecordedFrame
+{
+    public Vector3 position;
+    public bool interacted;
+}
+
+[System.Serializable]
+public struct ShadowMapping
+{
+    public string skillName; // e.g., "HoverSkill"
+    public GameObject prefab; // The specific variant for this skill
+}
+
 public class RecordingService : MonoBehaviour
 {
     public static RecordingService Instance { get; private set; }
 
     [Header("Prefabs & Roots")]
-    [SerializeField] private GameObject shadowPrefab;
+    [SerializeField] private GameObject defaultShadowPrefab;
+    [SerializeField] private List<ShadowMapping> shadowMappings;
     [SerializeField] private Transform actorRoot;
 
     [Header("Recording Settings")]
@@ -19,10 +34,12 @@ public class RecordingService : MonoBehaviour
 
     private GameObject _activeShadow;
     private Rigidbody2D _playerRb;
-    private List<Vector3> _recordedFrames = new List<Vector3>();
+    private List<RecordedFrame> _recordedFrames = new List<RecordedFrame>();
+    private GameObject _recordedPrefab; // Remembers WHICH prefab we recorded with
     private Vector3 _playerStartPosition;
     private float _timer;
     private bool _isRecording = false;
+    private bool _interactedThisFrame = false;
 
     public Rigidbody2D ActiveShadowRb { get; private set; }
     public Transform ActiveShadowFeet { get; private set; }
@@ -52,8 +69,20 @@ public class RecordingService : MonoBehaviour
     {
         if (!_isRecording || ActiveShadowRb == null) return;
         _timer += Time.fixedDeltaTime;
-        _recordedFrames.Add(ActiveShadowRb.position);
+
+        _recordedFrames.Add(new RecordedFrame 
+        { 
+            position = ActiveShadowRb.position, 
+            interacted = _interactedThisFrame 
+        });
+        _interactedThisFrame = false;
+
         if (_timer >= MaxRecordTime) EndRecording();
+    }
+
+    public void FlagInteraction()
+    {
+        _interactedThisFrame = true;
     }
 
     public void ToggleRecord()
@@ -62,9 +91,30 @@ public class RecordingService : MonoBehaviour
         else EndRecording();
     }
 
-    private void StartRecording()
+    public void StartRecording()
     {
-        if (!shadowPrefab || !_playerRb) return;
+        if (!_playerRb) return;
+
+        // 1. Determine which prefab to use based on the player's active skill
+        GameObject prefabToSpawn = defaultShadowPrefab;
+        var playerSkillManager = _playerRb.GetComponent<SkillManager>();
+        
+        if (playerSkillManager != null && playerSkillManager.ActiveSkill != null)
+        {
+            string activeSkillName = playerSkillManager.ActiveSkill.GetType().Name;
+            foreach (var mapping in shadowMappings)
+            {
+                if (mapping.skillName == activeSkillName)
+                {
+                    prefabToSpawn = mapping.prefab;
+                    break;
+                }
+            }
+        }
+
+        _recordedPrefab = prefabToSpawn; // Remember this for the replay phase
+
+        if (!prefabToSpawn) return;
         
         // Clean up any previous ghosts or active replays
         CleanupShadows(false); 
@@ -108,12 +158,35 @@ public class RecordingService : MonoBehaviour
         }
 
         // Spawn Shadow (Parented to actorRoot to keep scale at 1,1,1)
-        _activeShadow = Instantiate(shadowPrefab, snapPos, Quaternion.identity, actorRoot);
+        _activeShadow = Instantiate(prefabToSpawn, snapPos, Quaternion.identity, actorRoot);
         _activeShadow.name = "ACTIVE_RECORDING_SHADOW";
         _activeShadow.tag = Tags.Shadow;
 
         ActiveShadowRb = _activeShadow.GetComponent<Rigidbody2D>();
         ActiveShadowFeet = _activeShadow.transform.Find("ShadowGroundCheck");
+
+        // --- NEW: Sync Physics Settings ---
+        var playerController = _playerRb.GetComponent<PlayerController>();
+        var shadowController = _activeShadow.GetComponent<PlayerController>();
+        if (playerController != null && shadowController != null)
+        {
+            // We use reflection or helper methods if these were public, 
+            // but for now, let's ensure the shadow has the same setup.
+            // Since we can't access private fields easily, I'll add a Sync method to PlayerController.
+            shadowController.SyncSettings(playerController);
+        }
+
+        // Sync the active skill from the player to the shadow
+        var shadowSkillManager = _activeShadow.GetComponent<SkillManager>();
+        if (playerSkillManager != null && shadowSkillManager != null && playerSkillManager.ActiveSkillType != null)
+        {
+            shadowSkillManager.SetActiveSkill(playerSkillManager.ActiveSkillType);
+            Debug.Log("Shadow spawned and synced with skill: " + playerSkillManager.ActiveSkillType.Name);
+        }
+        else if (shadowSkillManager == null)
+        {
+            Debug.LogError("The spawned shadow prefab is missing a SkillManager component!");
+        }
 
         GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Memory);
 
@@ -158,10 +231,13 @@ public class RecordingService : MonoBehaviour
                 {
                     cinemachineCamera.Follow = _playerRb.transform;
                 }
+
+                // Automatically start the replay after recording ends
+                PlayLatestRecording();
             }    
         public void PlayLatestRecording()
         {
-            if (_recordedFrames == null || _recordedFrames.Count < 10) return;
+            if (_recordedFrames == null || _recordedFrames.Count < 10 || _recordedPrefab == null) return;
     
             // If a replay is already active, destroy it before creating a new one.
             if (ActiveReplay != null)
@@ -173,13 +249,13 @@ public class RecordingService : MonoBehaviour
             var presentWorld = GameStateManager.Instance.presentWorldFolder;
             if (presentWorld != null)
             {
-                GameObject ghost = Instantiate(shadowPrefab, _recordedFrames[0], Quaternion.identity, presentWorld.transform);
+                GameObject ghost = Instantiate(_recordedPrefab, _recordedFrames[0].position, Quaternion.identity, presentWorld.transform);
                 ghost.name = "REPLAY_GHOST";
                 ghost.tag = Tags.Shadow;
                 var replayComponent = ghost.GetComponent<ShadowReplay>();
                 if (replayComponent != null)
                 {
-                    replayComponent.Init(new List<Vector3>(_recordedFrames));
+                    replayComponent.Init(new List<RecordedFrame>(_recordedFrames));
                     ActiveReplay = replayComponent;
                     GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Replay);
                 }

@@ -6,6 +6,7 @@ public class UIManager : MonoBehaviour
     [Header("UI Elements")]
     [SerializeField] private MeterScript timerMeter; 
     [SerializeField] private Text btnText;
+    [SerializeField] private GameObject skillSelectionPanel;
     
     [Header("Dynamic Positioning")]
     [SerializeField] private Vector2 shadowFollowOffset; // An offset to position the meter above the shadow (e.g., X: 0, Y: 80)
@@ -30,6 +31,12 @@ public class UIManager : MonoBehaviour
         if (timerMeter != null && RecordingService.Instance != null)
         {
             timerMeter.SetMaxTime(RecordingService.Instance.MaxRecordTime);
+        }
+
+        // Force the panel to be hidden at the start of the game
+        if (skillSelectionPanel != null)
+        {
+            skillSelectionPanel.SetActive(false);
         }
     }
 
@@ -90,7 +97,25 @@ public class UIManager : MonoBehaviour
         if (btnText) btnText.text = isMemory ? "SUMMON ECHO" : "COMMUNE";
     }
 
-    public void OnClickRecord() => RecordingService.Instance.ToggleRecord();
+    public void OnClickRecord()
+    {
+        if (RecordingService.Instance != null)
+        {
+            RecordingService.Instance.ToggleRecord();
+        }
+    }
+
+    public void OpenSkillPanel()
+    {
+        if (skillSelectionPanel != null)
+        {
+            skillSelectionPanel.SetActive(!skillSelectionPanel.activeSelf);
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: skillSelectionPanel is not assigned!");
+        }
+    }
 
     public void OnClickReplay()
     {

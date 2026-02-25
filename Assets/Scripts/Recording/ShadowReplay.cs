@@ -6,14 +6,14 @@ public class ShadowReplay : MonoBehaviour
 {
     public static event Action OnReplayFinished;
 
-    private List<Vector3> _frames;
+    private List<RecordedFrame> _frames;
     private int _index = 0;
     private bool _active = false;
     private SpriteRenderer _spriteRenderer;
 
     public float ReplayProgress => (_frames != null && _frames.Count > 0) ? (float)_index / _frames.Count : 0f;
 
-    public void Init(List<Vector3> recordedFrames)
+    public void Init(List<RecordedFrame> recordedFrames)
     {
         _frames = recordedFrames;
         _index = 0;
@@ -40,7 +40,14 @@ public class ShadowReplay : MonoBehaviour
 
         if (_index < _frames.Count)
         {
-            transform.position = _frames[_index];
+            RecordedFrame currentFrame = _frames[_index];
+            transform.position = currentFrame.position;
+
+            if (currentFrame.interacted)
+            {
+                PerformInteraction();
+            }
+
             _index++;
         }
         else
@@ -48,6 +55,22 @@ public class ShadowReplay : MonoBehaviour
             _active = false;
             OnReplayFinished?.Invoke();
             Destroy(gameObject); 
+        }
+    }
+
+    private void PerformInteraction()
+    {
+        float interactRadius = 1.5f;
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, interactRadius);
+        
+        foreach (var collider in colliders)
+        {
+            if (collider.TryGetComponent<IInteractable>(out var interactable))
+            {
+                interactable.Interact(gameObject);
+                Debug.Log(name + " replayed interaction with: " + collider.name);
+                break;
+            }
         }
     }
 }

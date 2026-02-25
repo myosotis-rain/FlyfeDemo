@@ -5,11 +5,11 @@ using UnityEngine.InputSystem;
 public class PlayerInputController : MonoBehaviour
 {
     private PlayerController _playerController;
+    // private PlayerInputActions _inputActions; // Removed: No longer needed for SetCallbacks
     private Vector2 _moveInput;
 
     void Awake()
     {
-        // We only need to get the reference to the "muscles" now
         _playerController = GetComponent<PlayerController>();
     }
 
@@ -30,6 +30,7 @@ public class PlayerInputController : MonoBehaviour
         {
             if (recordingService.ActiveShadowRb != null)
             {
+                // Assuming the active shadow also has a PlayerController attached
                 return recordingService.ActiveShadowRb.GetComponent<PlayerController>();
             }
         }
@@ -38,19 +39,30 @@ public class PlayerInputController : MonoBehaviour
 
     // --- These methods are now called by the Unity Events on the PlayerInput component ---
 
-    public void OnMove(InputAction.CallbackContext context)
+    public void OnUseSkill(InputAction.CallbackContext context)
     {
-        _moveInput = context.ReadValue<Vector2>();
+        // Only allow skill usage if we are currently in the recording/memory phase.
+        if (RecordingService.Instance == null || !RecordingService.Instance.IsRecordingShadow)
+        {
+            return;
+        }
+
+        PlayerController activeController = GetActiveController();
+        if (activeController != null)
+        {
+            if (context.performed) // Skill is activated on a single press
+            {
+                activeController.StartSkill();
+            }
+        }
     }
-
-
 
     public void OnJump(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        PlayerController activeController = GetActiveController();
+        if (activeController != null)
         {
-            PlayerController activeController = GetActiveController();
-            if (activeController != null)
+            if (context.performed)
             {
                 activeController.Jump();
             }
@@ -71,25 +83,9 @@ public class PlayerInputController : MonoBehaviour
         {
             if (RecordingService.Instance.IsRecordingShadow)
             {
-                // If we are recording, end the recording first...
                 RecordingService.Instance.EndRecording();
-                // ...and then immediately play the latest recording.
-                RecordingService.Instance.PlayLatestRecording();
             }
-            else
-            {
-                // If we are not recording, just play the latest recording.
-                RecordingService.Instance.PlayLatestRecording();
-            }
-        }
-    }
-
-    public void OnUseSkill(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            // TODO: Implement skill logic
-            Debug.Log("UseSkill action was triggered");
+            RecordingService.Instance.PlayLatestRecording();
         }
     }
 
@@ -97,8 +93,45 @@ public class PlayerInputController : MonoBehaviour
     {
         if (context.performed)
         {
-            // TODO: Implement interact logic (e.g., for reading notes or flipping switches)
-            Debug.Log("Interact action was triggered");
+            PlayerController activeController = GetActiveController();
+            if (activeController != null)
+            {
+                // Search for interactables near the active character
+                float interactRadius = 1.5f;
+                Collider2D[] colliders = Physics2D.OverlapCircleAll(activeController.transform.position, interactRadius);
+                
+                foreach (var collider in colliders)
+                {
+                    if (collider.TryGetComponent<IInteractable>(out var interactable))
+                    {
+                        interactable.Interact(activeController.gameObject);
+                        
+                        // If we are currently recording, flag this interaction so the replay ghost can do it too.
+                        if (RecordingService.Instance != null && RecordingService.Instance.IsRecordingShadow)
+                        {
+                            RecordingService.Instance.FlagInteraction();
+                        }
+
+                        Debug.Log("Interacted with: " + collider.name);
+                        break; // Interact with the first one found
+                    }
+                }
+            }
+        }
+    }
+
+    public void OnMove(InputAction.CallbackContext context)
+    {
+        _moveInput = context.ReadValue<Vector2>();
+
+        // Check for early skill cancel if 'S' or 'Down Arrow' is pressed
+        if (context.performed && _moveInput.y < 0) // Detect pressing 'S' or 'Down Arrow'
+        {
+            PlayerController activeController = GetActiveController();
+            if (activeController != null && activeController.IsSkillActive)
+            {
+                activeController.CancelSkill();
+            }
         }
     }
 
@@ -110,5 +143,22 @@ public class PlayerInputController : MonoBehaviour
     public void OnClick(InputAction.CallbackContext context)
     {
         // Not used for character control; this is for UI interaction.
+    }
+
+    public void OnCycleSkill(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            float direction = context.ReadValue<float>();
+            // If it's a key press like 'Q', value is 1. If it's scroll wheel, it's 120 or -120.
+            if (_playerController != null)
+            {
+                SkillManager sm = _playerController.GetComponent<SkillManager>();
+                if (sm != null)
+                {
+                    sm.CycleSkills(direction);
+                }
+            }
+        }
     }
 }
