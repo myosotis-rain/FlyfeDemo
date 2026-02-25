@@ -9,10 +9,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5918027122396849873}
+  - component: {fileID: 3682924277947703923}
   - component: {fileID: 4530298767798667079}
   - component: {fileID: 6273051635589914343}
-  - component: {fileID: 2393874879211311202}
   - component: {fileID: 5343809705656081245}
+  - component: {fileID: 4682127258572385729}
   m_Layer: 7
   m_Name: Shadow
   m_TagString: Shadow
@@ -36,6 +37,29 @@ Transform:
   - {fileID: 5181884927721037476}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3682924277947703923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4171125458507530390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28a4445cf33d144518e2e27abb829d8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  moveSpeed: 8
+  climbSpeed: 5
+  jumpForce: 12
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  vineLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  groundCheck: {fileID: 5181884927721037476}
+  groundCheckRadius: 0.25
 --- !u!212 &4530298767798667079
 SpriteRenderer:
   serializedVersion: 2
@@ -122,18 +146,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 1
   m_Constraints: 4
---- !u!114 &2393874879211311202
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4171125458507530390}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f84e74b1992e54ee681ea6eec8b7f4f9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShadowReplay
 --- !u!61 &5343809705656081245
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -180,6 +192,18 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.95250005, y: 1.5240002}
   m_EdgeRadius: 0
+--- !u!114 &4682127258572385729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4171125458507530390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7131e9eb0ec17407fad2bcce98d6c3af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShadowReplay
 --- !u!1 &4746082280993316616
 GameObject:
   m_ObjectHideFlags: 0

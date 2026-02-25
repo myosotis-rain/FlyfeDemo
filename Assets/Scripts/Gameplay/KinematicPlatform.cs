@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class KinematicPlatform : MonoBehaviour
 {
-    public Vector3 travelOffset = new Vector3(5, 0, 0); 
-    public float transitSpeed = 2.5f;
+    [SerializeField] private Vector3 travelOffset = new Vector3(5, 0, 0); 
+    [SerializeField] private float transitSpeed = 2.5f;
 
     private Vector3 _startPosition;
     private Vector3 _targetPosition;
@@ -37,7 +37,7 @@ public class KinematicPlatform : MonoBehaviour
 
         foreach (var hit in hits)
         {
-            if (hit.collider.CompareTag("Player") || hit.collider.CompareTag("Shadow"))
+            if (hit.collider.CompareTag(Tags.Player) || hit.collider.CompareTag(Tags.Shadow))
             {
                 hit.collider.transform.position += delta;
             }

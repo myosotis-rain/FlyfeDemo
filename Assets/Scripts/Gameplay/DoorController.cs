@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class DoorController : MonoBehaviour
 {
-    public Vector3 openOffset = new Vector3(0, 3, 0); // Direction and distance to move
-    public float speed = 5f;
+    [SerializeField] private Vector3 positionOffsetWhenOpen = new Vector3(0, 3, 0); // Direction and distance to move
+    [SerializeField] private float slideSpeed = 5f;
     
     private Vector3 closedPos;
     private Vector3 targetPos;
@@ -17,11 +17,11 @@ public class DoorController : MonoBehaviour
     void Update()
     {
         // Smoothly slides the door/bridge to the target position
-        transform.position = Vector3.MoveTowards(transform.position, targetPos, speed * Time.deltaTime);
+        transform.position = Vector3.MoveTowards(transform.position, targetPos, slideSpeed * Time.deltaTime);
     }
 
     public void SetOpen(bool isOpen)
     {
-        targetPos = isOpen ? closedPos + openOffset : closedPos;
+        targetPos = isOpen ? closedPos + positionOffsetWhenOpen : closedPos;
     }
 }

@@ -3,8 +3,8 @@ using UnityEngine.SceneManagement;
 
 public class PlayerRespawn : MonoBehaviour
 {
-    public float fallThreshold = -10f;
-    public Transform respawnPoint;
+    [SerializeField] private float fallThreshold = -10f;
+    [SerializeField] private Transform respawnPoint;
 
     private Rigidbody2D rb;
 
@@ -15,7 +15,7 @@ public class PlayerRespawn : MonoBehaviour
 
     void Update()
     {
-        // Only check for fall death if we are NOT in memory mode 
+        // Only check for fall death if we are NOT in memory mode
         // OR if the shadow falls (depending on your game design)
         if (transform.position.y < fallThreshold)
             Respawn();
@@ -24,16 +24,16 @@ public class PlayerRespawn : MonoBehaviour
     public void Respawn()
     {
         // 1. Force the World State back to Present
-        if (RecordManager.Instance != null)
+        if (RecordingService.Instance != null)
         {
-            RecordManager.Instance.ForceResetToPresent();
+            RecordingService.Instance.ForceResetToPresent();
         }
 
         // 2. Handle the physical relocation
         if (respawnPoint != null)
         {
             transform.position = respawnPoint.position;
-            
+
             // Safety check for Rigidbody before resetting velocity
             if (rb != null)
             {

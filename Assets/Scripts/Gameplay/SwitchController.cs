@@ -2,12 +2,12 @@ using UnityEngine;
 
 public class SwitchController : MonoBehaviour
 {
-    public DoorController door; // Drag the door object here in Inspector
+    [SerializeField] private DoorController door; // Drag the door object here in Inspector
     private int pressCount = 0;
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player") || other.CompareTag("Shadow"))
+        if (other.CompareTag(Tags.Player) || other.CompareTag(Tags.Shadow))
         {
             pressCount++;
             if (door != null) door.SetOpen(true);
@@ -16,7 +16,7 @@ public class SwitchController : MonoBehaviour
 
     void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player") || other.CompareTag("Shadow"))
+        if (other.CompareTag(Tags.Player) || other.CompareTag(Tags.Shadow))
         {
             pressCount--;
             if (pressCount <= 0)
