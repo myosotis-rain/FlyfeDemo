@@ -81,7 +81,7 @@
                 {
                     "name": "CycleSkill",
                     "type": "Value",
-                    "id": "e45f7c32-1234-4567-8901-234567890abc",
+                    "id": "ec0a943b-2203-460a-8ff3-d26841a6421e",
                     "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
@@ -201,6 +201,17 @@
                 },
                 {
                     "name": "",
+                    "id": "ec55c614-d4f5-47f2-9537-5f0478e2be1d",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "c2888618-4a70-4c56-b872-0d4d4e60e914",
                     "path": "<Keyboard>/space",
                     "interactions": "",
@@ -234,12 +245,45 @@
                 },
                 {
                     "name": "",
+                    "id": "068946e4-1ab6-4969-991e-de8a99158895",
+                    "path": "<Gamepad>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Jump",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "efb28185-5434-48eb-85e2-29dd3de81d15",
                     "path": "<Keyboard>/leftShift",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Record",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5f0eb8ce-a58a-49f2-a26d-aa6a6bcd3869",
+                    "path": "<Gamepad>/leftShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Record",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5712eed7-3b97-4c7d-aab2-76713d7c107e",
+                    "path": "<Gamepad>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Replay",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -267,8 +311,30 @@
                 },
                 {
                     "name": "",
+                    "id": "b2821776-7261-462c-b0e3-43bbb4bb5801",
+                    "path": "<Gamepad>/buttonEast",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "UseSkill",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "2464ef80-4c46-4d59-b9a7-06bc6ac621d4",
                     "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ccd87135-26ac-4e5d-a7f8-5970d3186ae0",
+                    "path": "<Gamepad>/buttonWest",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -289,8 +355,30 @@
                 },
                 {
                     "name": "",
+                    "id": "aaf87124-19ef-464c-9bc9-cc1964b94c5c",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Point",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "633af64e-b78a-4a57-9d5b-7943358bb6c7",
                     "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Click",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f5648782-3912-45c6-9f28-8710d1f42918",
+                    "path": "<Gamepad>/buttonNorth",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -311,7 +399,7 @@
                 },
                 {
                     "name": "",
-                    "id": "890abcde-1234-4567-8901-234567890fgh",
+                    "id": "0be7cf78-8e05-44ec-8d43-b7adb562dbea",
                     "path": "<Mouse>/scroll/y",
                     "interactions": "",
                     "processors": "",
