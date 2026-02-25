@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 788a901424ff9804794471d408b3eb41
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 173133
+  packageName: Elemental Meters
+  packageVersion: 1.0
+  assetPath: Assets/ElementalMeters/Scripts/MeterButtons.cs
+  uploadId: 374588

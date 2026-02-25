@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 36f481154e423fb4bbaf8520bb2e23b4
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 173133
+  packageName: Elemental Meters
+  packageVersion: 1.0
+  assetPath: Assets/ElementalMeters/Scenes/MeterDemo.unity
+  uploadId: 374588
