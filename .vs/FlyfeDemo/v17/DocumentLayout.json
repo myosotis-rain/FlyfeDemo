@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\sx103\\Desktop\\FlyfeDemo\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{8F05617F-9039-B9CD-C2FB-E650BDD40A54}|Assembly-CSharp.csproj|c:\\users\\sx103\\desktop\\flyfedemo\\assets\\scripts\\skills\\skillmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8F05617F-9039-B9CD-C2FB-E650BDD40A54}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\skills\\skillmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "SkillManager.cs",
+              "DocumentMoniker": "C:\\Users\\sx103\\Desktop\\FlyfeDemo\\Assets\\Scripts\\Skills\\SkillManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Skills\\SkillManager.cs",
+              "ToolTip": "C:\\Users\\sx103\\Desktop\\FlyfeDemo\\Assets\\Scripts\\Skills\\SkillManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Skills\\SkillManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-25T21:24:56.881Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

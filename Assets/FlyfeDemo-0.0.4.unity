@@ -1351,7 +1351,7 @@ MonoBehaviour:
   timerMeter: {fileID: 80579690}
   btnText: {fileID: 0}
   skillSelectionPanel: {fileID: 1471738188}
-  shadowFollowOffset: {x: 0, y: 260}
+  shadowFollowOffset: {x: 0, y: 280}
   referenceHeight: 1080
 --- !u!1 &689846878
 GameObject:
