@@ -9,7 +9,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject skillSelectionPanel;
     
     [Header("Dynamic Positioning")]
-    [SerializeField] private Vector2 shadowFollowOffset; // An offset to position the meter above the shadow (e.g., X: 0, Y: 80)
+    [SerializeField] private Vector2 shadowFollowOffset; // An offset to position the meter above the shadow
+    [SerializeField] private float referenceHeight = 1080f; // The height at which the offset looks perfect
 
     private RectTransform _meterRectTransform;
     private Vector2 _meterOriginalAnchoredPos;
@@ -58,7 +59,10 @@ public class UIManager : MonoBehaviour
             if (activeShadow != null && Camera.main != null)
             {
                 Vector2 screenPoint = Camera.main.WorldToScreenPoint(activeShadow.position);
-                _meterRectTransform.position = screenPoint + shadowFollowOffset;
+                
+                // RESOLUTION FIX: Scale the offset based on current screen height
+                float scale = Screen.height / referenceHeight;
+                _meterRectTransform.position = screenPoint + (shadowFollowOffset * scale);
             }
         }
         else if (currentState == GameStateManager.WorldState.Replay)
