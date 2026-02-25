@@ -6,13 +6,13 @@ public class PlayerInputController : MonoBehaviour, PlayerInputActions.IPlayerAc
 {
     private PlayerController _playerController;
     private PlayerInputActions _inputActions;
-    private Vector2 _moveInput;
+    private Vector2 _moveInput; // Changed to Vector2 to accommodate Y-axis for climbing
 
     void Awake()
     {
         _playerController = GetComponent<PlayerController>();
         _inputActions = new PlayerInputActions();
-        _inputActions.Player.SetCallbacks(this);
+        _inputActions.Player.SetCallbacks(this); // Using SetCallbacks directly
     }
 
     private void OnEnable()
@@ -30,7 +30,7 @@ public class PlayerInputController : MonoBehaviour, PlayerInputActions.IPlayerAc
         PlayerController activeController = GetActiveController();
         if (activeController != null)
         {
-            activeController.Move(_moveInput);
+            activeController.Move(_moveInput); // Pass Vector2 to Move method
         }
     }
 
@@ -41,6 +41,7 @@ public class PlayerInputController : MonoBehaviour, PlayerInputActions.IPlayerAc
         {
             if (recordingService.ActiveShadowRb != null)
             {
+                // Assuming the active shadow also has a PlayerController attached
                 return recordingService.ActiveShadowRb.GetComponent<PlayerController>();
             }
         }
@@ -108,4 +109,3 @@ public class PlayerInputController : MonoBehaviour, PlayerInputActions.IPlayerAc
         // Not used for character control; this is for UI interaction.
     }
 }
-
