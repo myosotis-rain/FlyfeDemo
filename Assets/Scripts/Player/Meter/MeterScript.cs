@@ -9,20 +9,17 @@ public class MeterScript : MonoBehaviour
     public Gradient gradient;
     public Image fill;
 
-    public void SetMaxHealth(float health)
+    public void SetMaxTime(float time)
     {
-        slider.maxValue = health;
-        slider.value = health;
+        slider.maxValue = time;
+        slider.value = time;
 
         fill.color = gradient.Evaluate (1f) ;
-
     }
 
-    public void SetHealth(float health)
+    public void SetTime(float time)
     {
-        slider.value = health;
+        slider.value = time;
         fill.color = gradient.Evaluate(slider.normalizedValue);
-
     }
-
 }

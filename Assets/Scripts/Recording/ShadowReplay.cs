@@ -1,11 +1,16 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ShadowReplay : MonoBehaviour
 {
+    public static event Action OnReplayFinished;
+
     private List<Vector3> _frames;
     private int _index = 0;
     private bool _active = false;
+
+    public float ReplayProgress => (_frames != null && _frames.Count > 0) ? (float)_index / _frames.Count : 0f;
 
     public void Init(List<Vector3> recordedFrames)
     {
@@ -33,6 +38,7 @@ public class ShadowReplay : MonoBehaviour
         else
         {
             _active = false;
+            OnReplayFinished?.Invoke();
             Destroy(gameObject); 
         }
     }

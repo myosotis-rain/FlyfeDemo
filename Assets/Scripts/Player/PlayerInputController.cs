@@ -2,35 +2,24 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(PlayerInput))]
-public class PlayerInputController : MonoBehaviour, PlayerInputActions.IPlayerActions
+public class PlayerInputController : MonoBehaviour
 {
     private PlayerController _playerController;
-    private PlayerInputActions _inputActions;
-    private Vector2 _moveInput; // Changed to Vector2 to accommodate Y-axis for climbing
+    private Vector2 _moveInput;
 
     void Awake()
     {
+        // We only need to get the reference to the "muscles" now
         _playerController = GetComponent<PlayerController>();
-        _inputActions = new PlayerInputActions();
-        _inputActions.Player.SetCallbacks(this); // Using SetCallbacks directly
-    }
-
-    private void OnEnable()
-    {
-        _inputActions.Player.Enable();
-    }
-
-    private void OnDisable()
-    {
-        _inputActions.Player.Disable();
     }
 
     void Update()
     {
+        // The _moveInput is updated by OnMove, so we apply it here
         PlayerController activeController = GetActiveController();
         if (activeController != null)
         {
-            activeController.Move(_moveInput); // Pass Vector2 to Move method
+            activeController.Move(_moveInput);
         }
     }
 
@@ -41,17 +30,20 @@ public class PlayerInputController : MonoBehaviour, PlayerInputActions.IPlayerAc
         {
             if (recordingService.ActiveShadowRb != null)
             {
-                // Assuming the active shadow also has a PlayerController attached
                 return recordingService.ActiveShadowRb.GetComponent<PlayerController>();
             }
         }
         return _playerController;
     }
 
+    // --- These methods are now called by the Unity Events on the PlayerInput component ---
+
     public void OnMove(InputAction.CallbackContext context)
     {
         _moveInput = context.ReadValue<Vector2>();
     }
+
+
 
     public void OnJump(InputAction.CallbackContext context)
     {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Cinemachine; // Updated for Unity 6+ Cinemachine
+using Unity.Cinemachine;
 
 public class RecordingService : MonoBehaviour
 {
@@ -12,9 +12,10 @@ public class RecordingService : MonoBehaviour
 
     [Header("Recording Settings")]
     [SerializeField] private float maxRecordTime = 6f;
+    public float MaxRecordTime => maxRecordTime;
 
-    [Header("Cinemachine")] // Added for Cinemachine
-    [SerializeField] private CinemachineCamera cinemachineCamera; // Corrected to CinemachineCamera for Unity 6+
+    [Header("Cinemachine")]
+    [SerializeField] private CinemachineCamera cinemachineCamera;
 
     private GameObject _activeShadow;
     private Rigidbody2D _playerRb;
@@ -26,24 +27,33 @@ public class RecordingService : MonoBehaviour
     public Rigidbody2D ActiveShadowRb { get; private set; }
     public Transform ActiveShadowFeet { get; private set; }
     public bool IsRecordingShadow => _isRecording;
+    public ShadowReplay ActiveReplay { get; private set; }
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-        var player = GameObject.FindGameObjectWithTag(Tags.Player); // Changed to use Tags.Player
+        var player = GameObject.FindGameObjectWithTag(Tags.Player);
         if (player) _playerRb = player.GetComponent<Rigidbody2D>();
+    }
+
+    void OnEnable()
+    {
+        ShadowReplay.OnReplayFinished += HandleReplayFinished;
+    }
+
+    void OnDisable()
+    {
+        ShadowReplay.OnReplayFinished -= HandleReplayFinished;
     }
 
     void FixedUpdate()
     {
         if (!_isRecording || ActiveShadowRb == null) return;
         _timer += Time.fixedDeltaTime;
-
         _recordedFrames.Add(ActiveShadowRb.position);
-
-        if (_timer >= maxRecordTime) EndRecording();
+        if (_timer >= MaxRecordTime) EndRecording();
     }
 
     public void ToggleRecord()
@@ -55,7 +65,13 @@ public class RecordingService : MonoBehaviour
     private void StartRecording()
     {
         if (!shadowPrefab || !_playerRb) return;
-        CleanupShadows();
+        
+        CleanupShadows(false); 
+        if (ActiveReplay != null)
+        {
+            Destroy(ActiveReplay.gameObject);
+            ActiveReplay = null;
+        }
 
         _isRecording = true;
         _timer = 0f;
@@ -84,14 +100,13 @@ public class RecordingService : MonoBehaviour
 
         _activeShadow = Instantiate(shadowPrefab, snapPos, Quaternion.identity, actorRoot);
         _activeShadow.name = "ACTIVE_RECORDING_SHADOW";
-        _activeShadow.tag = Tags.Shadow; // Changed to use Tags.Shadow
+        _activeShadow.tag = Tags.Shadow;
 
         ActiveShadowRb = _activeShadow.GetComponent<Rigidbody2D>();
         ActiveShadowFeet = _activeShadow.transform.Find("ShadowGroundCheck");
 
         GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Memory);
 
-        // Cinemachine: Switch camera to follow the active shadow
         if (cinemachineCamera != null)
         {
             cinemachineCamera.Follow = _activeShadow.transform;
@@ -111,27 +126,20 @@ public class RecordingService : MonoBehaviour
 
         if (_recordedFrames.Count > 10)
         {
-            var presentWorld = GameStateManager.Instance.presentWorldFolder;
-            if(presentWorld != null)
-            {
-                GameObject ghost = Instantiate(shadowPrefab, _recordedFrames[0], Quaternion.identity, presentWorld.transform);
-                ghost.name = "REPLAY_GHOST";
-                ghost.tag = Tags.Shadow;
-                ghost.GetComponent<ShadowReplay>()?.Init(new List<Vector3>(_recordedFrames));
-            }
+            PlayLatestRecording();
         }
-
-        if (_activeShadow)
+        else
         {
-            _activeShadow.SetActive(false);
-            Destroy(_activeShadow);
+             if (_activeShadow)
+            {
+                _activeShadow.SetActive(false);
+                Destroy(_activeShadow);
+            }
+            ActiveShadowRb = null;
+            ActiveShadowFeet = null;
+            GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Present);
         }
-        ActiveShadowRb = null;
-        ActiveShadowFeet = null;
         
-        GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Present);
-
-        // Cinemachine: Switch camera back to follow the player
         if (cinemachineCamera != null)
         {
             cinemachineCamera.Follow = _playerRb.transform;
@@ -142,7 +150,7 @@ public class RecordingService : MonoBehaviour
     {
         if (_recordedFrames == null || _recordedFrames.Count < 10) return;
 
-        CleanupShadows(true); // Clean up only the replay ghost
+        CleanupShadows(true);
 
         var presentWorld = GameStateManager.Instance.presentWorldFolder;
         if (presentWorld != null)
@@ -150,7 +158,13 @@ public class RecordingService : MonoBehaviour
             GameObject ghost = Instantiate(shadowPrefab, _recordedFrames[0], Quaternion.identity, presentWorld.transform);
             ghost.name = "REPLAY_GHOST";
             ghost.tag = Tags.Shadow;
-            ghost.GetComponent<ShadowReplay>()?.Init(new List<Vector3>(_recordedFrames));
+            var replayComponent = ghost.GetComponent<ShadowReplay>();
+            if (replayComponent != null)
+            {
+                replayComponent.Init(new List<Vector3>(_recordedFrames));
+                ActiveReplay = replayComponent;
+                GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Replay);
+            }
         }
     }
 
@@ -166,7 +180,12 @@ public class RecordingService : MonoBehaviour
         }
     }
 
-    public float GetProgress() => Mathf.Clamp01(_timer / maxRecordTime);
+    public float GetProgress() => Mathf.Clamp01(_timer / MaxRecordTime);
+
+    private void HandleReplayFinished()
+    {
+        ActiveReplay = null;
+    }
 
     public void ForceResetToPresent()
     {
