@@ -69,7 +69,18 @@ public class PlayerInputController : MonoBehaviour
     {
         if (context.performed && RecordingService.Instance != null)
         {
-            RecordingService.Instance.PlayLatestRecording();
+            if (RecordingService.Instance.IsRecordingShadow)
+            {
+                // If we are recording, end the recording first...
+                RecordingService.Instance.EndRecording();
+                // ...and then immediately play the latest recording.
+                RecordingService.Instance.PlayLatestRecording();
+            }
+            else
+            {
+                // If we are not recording, just play the latest recording.
+                RecordingService.Instance.PlayLatestRecording();
+            }
         }
     }
 

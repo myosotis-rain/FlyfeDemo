@@ -124,49 +124,41 @@ public class RecordingService : MonoBehaviour
         }
     }
 
-        public void EndRecording()
-        {
-            if (!_isRecording) return;
-            _isRecording = false;
-    
-            // Restore player control and color
-            _playerRb.simulated = true;
-            _playerRb.transform.position = _playerStartPosition;
-            if (_playerRb.TryGetComponent<SpriteRenderer>(out var playerSprite))
+            public void EndRecording()
             {
-                playerSprite.color = Color.white;
-            }
-    
-            // Clean up the active shadow immediately
-            if (_activeShadow)
-            {
-                Destroy(_activeShadow);
-                _activeShadow = null;
-            }
-            ActiveShadowRb = null;
-            ActiveShadowFeet = null;
-    
-            // Reset platforms
-            KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
-            foreach (var p in platforms) p.ResetState();
-    
-            // Decide whether to play a replay or just reset
-            if (_recordedFrames.Count > 10)
-            {
-                PlayLatestRecording();
-            }
-            else
-            {
+                if (!_isRecording) return;
+                _isRecording = false;
+        
+                // Restore player control and color
+                _playerRb.simulated = true;
+                _playerRb.transform.position = _playerStartPosition;
+                if (_playerRb.TryGetComponent<SpriteRenderer>(out var playerSprite))
+                {
+                    playerSprite.color = Color.white;
+                }
+        
+                // Clean up the active shadow immediately
+                if (_activeShadow)
+                {
+                    Destroy(_activeShadow);
+                    _activeShadow = null;
+                }
+                ActiveShadowRb = null;
+                ActiveShadowFeet = null;
+        
+                // Reset platforms
+                KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
+                foreach (var p in platforms) p.ResetState();
+        
+                // Always return to the Present state when recording is finished.
                 GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Present);
-            }
-            
-            // Switch camera back to the player
-            if (cinemachineCamera != null)
-            {
-                cinemachineCamera.Follow = _playerRb.transform;
-            }
-        }
-    
+                
+                // Switch camera back to the player
+                if (cinemachineCamera != null)
+                {
+                    cinemachineCamera.Follow = _playerRb.transform;
+                }
+            }    
         public void PlayLatestRecording()
         {
             if (_recordedFrames == null || _recordedFrames.Count < 10) return;

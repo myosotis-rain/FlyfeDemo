@@ -96,7 +96,17 @@ public class UIManager : MonoBehaviour
     {
         if (RecordingService.Instance != null)
         {
-            RecordingService.Instance.PlayLatestRecording();
+            if (RecordingService.Instance.IsRecordingShadow)
+            {
+                // If recording, stop the recording first, then play.
+                RecordingService.Instance.EndRecording();
+                RecordingService.Instance.PlayLatestRecording();
+            }
+            else
+            {
+                // If not recording, just play.
+                RecordingService.Instance.PlayLatestRecording();
+            }
         }
     }
 }
