@@ -27,10 +27,11 @@ public class ShadowReplay : MonoBehaviour
             rb.useFullKinematicContacts = true;
         }
 
-        // Gray out the replay ghost to differentiate it from the player
-        if (_spriteRenderer != null)
+        // Darken all parts of the replay ghost
+        SpriteRenderer[] sprites = GetComponentsInChildren<SpriteRenderer>();
+        foreach (var sprite in sprites)
         {
-            _spriteRenderer.color = Color.gray;
+            sprite.color = new Color(0.6f, 0.6f, 0.6f, 1.0f);
         }
     }
 

@@ -24,4 +24,14 @@ public class DoorController : MonoBehaviour
     {
         targetPos = isOpen ? closedPos + positionOffsetWhenOpen : closedPos;
     }
+
+    public void Open()
+    {
+        SetOpen(true);
+    }
+
+    public void Close()
+    {
+        SetOpen(false);
+    }
 }

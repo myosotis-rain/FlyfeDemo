@@ -44,8 +44,14 @@ public class GameStateManager : MonoBehaviour
     public void SwapWorld(WorldState state)
     {
         CurrentState = state;
-        presentWorldFolder?.SetActive(state == WorldState.Present || state == WorldState.Replay); // Active in Present AND Replay
-        memoryWorldFolder?.SetActive(state == WorldState.Memory);
+        
+        // Toggle World Folders
+        if (presentWorldFolder != null)
+            presentWorldFolder.SetActive(state == WorldState.Present || state == WorldState.Replay);
+        
+        if (memoryWorldFolder != null)
+            memoryWorldFolder.SetActive(state == WorldState.Memory);
+        
         OnWorldChanged?.Invoke(CurrentState);
     }
 

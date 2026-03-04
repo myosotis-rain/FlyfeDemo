@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 
 public class PlayerRespawn : MonoBehaviour
 {
-    [SerializeField] private float fallThreshold = -10f;
+    [SerializeField] private float fallThreshold = -50f;
     [SerializeField] private Transform respawnPoint;
 
     private Rigidbody2D rb;
@@ -33,6 +33,9 @@ public class PlayerRespawn : MonoBehaviour
         if (respawnPoint != null)
         {
             transform.position = respawnPoint.position;
+
+            // Resync all parallax layers to prevent massive jumps when camera snaps
+            ParallaxLayer.ResyncAll();
 
             // Safety check for Rigidbody before resetting velocity
             if (rb != null)

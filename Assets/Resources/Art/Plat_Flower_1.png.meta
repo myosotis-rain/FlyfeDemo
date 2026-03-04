@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 37838d5a2f33e4ee2b4c6247676f4c94
+guid: 6c64041fd727c4a4a8ec6cb0cad3483b
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7367808777163505026
-    second: sunflower_0
+      213: 2936434653462695177
+    second: Plat_Flower_1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 1400
+  spritePixelsToUnits: 200
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,23 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: sunflower_0
+      name: Plat_Flower_1_0
       rect:
         serializedVersion: 2
-        x: 608
-        y: 507
-        width: 1905
-        height: 3048
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+        x: 1
+        y: 0
+        width: 908
+        height: 1276
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 28df5d7eb07bf3660800000000000000
-      internalID: 7367808777163505026
+      spriteID: 90d8ac962cf40c820800000000000000
+      internalID: 2936434653462695177
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 7cd7d8af3c71a44609fec2c409a414e3
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      sunflower_0: 7367808777163505026
+      Plat_Flower_1_0: 2936434653462695177
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

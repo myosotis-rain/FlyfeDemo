@@ -15,6 +15,12 @@ public class PlayerInputController : MonoBehaviour
 
     void Update()
     {
+        // Force stop movement if dialogue is open
+        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+        {
+            _moveInput = Vector2.zero;
+        }
+
         // The _moveInput is updated by OnMove, so we apply it here
         PlayerController activeController = GetActiveController();
         if (activeController != null)
@@ -59,6 +65,8 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnJump(InputAction.CallbackContext context)
     {
+        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) return;
+
         PlayerController activeController = GetActiveController();
         if (activeController != null)
         {
@@ -71,6 +79,8 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnRecord(InputAction.CallbackContext context)
     {
+        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) return;
+
         if (context.performed && RecordingService.Instance != null)
         {
             RecordingService.Instance.ToggleRecord();
@@ -79,6 +89,8 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnReplay(InputAction.CallbackContext context)
     {
+        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) return;
+
         if (context.performed && RecordingService.Instance != null)
         {
             if (RecordingService.Instance.IsRecordingShadow)
@@ -93,6 +105,13 @@ public class PlayerInputController : MonoBehaviour
     {
         if (context.performed)
         {
+            // If we are currently in a conversation, advance the dialogue instead of interacting with the world
+            if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+            {
+                DialogueUI.Instance.AdvanceDialogue();
+                return;
+            }
+
             PlayerController activeController = GetActiveController();
             if (activeController != null)
             {
@@ -122,6 +141,12 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnMove(InputAction.CallbackContext context)
     {
+        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+        {
+            _moveInput = Vector2.zero; // Stop movement while talking
+            return;
+        }
+
         _moveInput = context.ReadValue<Vector2>();
 
         // Check for early skill cancel if 'S' or 'Down Arrow' is pressed
