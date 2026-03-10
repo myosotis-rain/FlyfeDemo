@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Events; // 必须引入
 using UnityEngine.InputSystem;
 
-public class RotarySwitchController : MonoBehaviour, IInteractable
+public class RotarySwitchController : MonoBehaviour, IInteractable, IResettable
 {
     [Header("Hierarchy References")]
     [SerializeField] private Transform pivotTransform; 
@@ -25,14 +25,31 @@ public class RotarySwitchController : MonoBehaviour, IInteractable
     private Quaternion _startRot;
     private Quaternion _endRot;
     private float _outOfRangeTimer = 0f;
+    private bool _initialState;
 
     void Awake()
     {
+        _initialState = _isOn;
         if (pivotTransform != null)
         {
             _startRot = pivotTransform.localRotation;
             _endRot = Quaternion.Euler(0, 0, targetAngle);
         }
+    }
+
+    public void ResetState()
+    {
+        _isOn = _initialState;
+        _outOfRangeTimer = 0f;
+        
+        if (pivotTransform != null)
+        {
+            pivotTransform.localRotation = _isOn ? _endRot : _startRot;
+        }
+        
+        // Sync linked objects (like vines) to the initial state
+        if (_isOn) onSwitchOn.Invoke();
+        else onSwitchOff.Invoke();
     }
 
     public void Interact(GameObject actor)

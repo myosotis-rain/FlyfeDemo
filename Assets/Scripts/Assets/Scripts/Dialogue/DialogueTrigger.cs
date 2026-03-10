@@ -16,13 +16,24 @@ public class DialogueTrigger : MonoBehaviour, IInteractable
     [Header("Trigger Settings")]
     [SerializeField] private DialogueTriggerMode triggerMode = DialogueTriggerMode.Manual;
     [SerializeField] private float autoTriggerRadius = 3f;
+    [SerializeField] private bool persistAfterDeath = true;
 
     [Header("Events")]
     [Tooltip("Fired when the conversation finishes. Useful for opening doors, giving items, or starting cutscenes.")]
     public UnityEvent onDialogueFinished;
 
+    private static System.Collections.Generic.HashSet<string> _triggeredDialogues = new System.Collections.Generic.HashSet<string>();
     private bool _hasAutoTriggered = false;
     private Transform _playerTransform;
+
+    private void Awake()
+    {
+        string id = name + transform.position.ToString();
+        if (persistAfterDeath && _triggeredDialogues.Contains(id))
+        {
+            _hasAutoTriggered = true;
+        }
+    }
 
     void Start()
     {
@@ -66,11 +77,14 @@ public class DialogueTrigger : MonoBehaviour, IInteractable
 
         if (DialogueUI.Instance != null && !DialogueUI.Instance.IsOpen)
         {
+            if (persistAfterDeath)
+            {
+                string id = name + transform.position.ToString();
+                _triggeredDialogues.Add(id);
+            }
+
             DialogueUI.Instance.StartConversation(conversation, () => {
                 onDialogueFinished?.Invoke();
-                
-                // Optional: If you want proximity triggers to reset after a while, 
-                // you could reset _hasAutoTriggered here. For now, it's one-shot.
             });
         }
     }

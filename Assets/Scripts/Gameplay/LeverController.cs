@@ -1,9 +1,31 @@
 using UnityEngine;
 
-public class LeverController : MonoBehaviour, IInteractable
+public class LeverController : MonoBehaviour, IInteractable, IResettable
 {
     [SerializeField] private DoorController door;
     [SerializeField] private bool isOn = false;
+
+    private bool _initialState;
+
+    void Awake()
+    {
+        _initialState = isOn;
+    }
+
+    public void ResetState()
+    {
+        isOn = _initialState;
+        if (door != null) door.SetOpen(isOn);
+        UpdateVisuals();
+    }
+
+    private void UpdateVisuals()
+    {
+        if (TryGetComponent<SpriteRenderer>(out var sr))
+        {
+            sr.flipY = isOn;
+        }
+    }
 
     public void Interact(GameObject user)
     {
@@ -13,11 +35,7 @@ public class LeverController : MonoBehaviour, IInteractable
             door.SetOpen(isOn);
         }
         
-        // Visual feedback for lever state (optional, e.g., flipping a sprite)
-        if (TryGetComponent<SpriteRenderer>(out var sr))
-        {
-            sr.flipY = isOn; // Simple placeholder visual feedback
-        }
+        UpdateVisuals();
         
         Debug.Log("Lever interacted! State: " + (isOn ? "ON" : "OFF"));
     }

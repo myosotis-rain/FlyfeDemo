@@ -28,7 +28,7 @@ public enum AdvanceMode
 public class CutsceneStep
 {
     public CutsceneStepType type;
-    public AdvanceMode advanceMode; // New
+    public AdvanceMode advanceMode; 
     public DialogueConversation conversation;
     public Transform cameraTarget;
     public Sprite cgImage; 
@@ -42,11 +42,25 @@ public class CutsceneController : MonoBehaviour
     [SerializeField] private CinemachineCamera virtualCamera;
     
     [Header("CG Support")]
-    [SerializeField] private Image cgDisplayImage; // The UI Image component to show the CG
+    [SerializeField] private Image cgDisplayImage; 
     [SerializeField] private bool playOnStart = false;
+
+    private static int _activeCutscenesCount = 0;
+    public static bool AnyCutsceneActive => _activeCutscenesCount > 0;
 
     private Transform _originalCameraFollow;
     private bool _isCutsceneActive = false;
+    private bool _waitingForInput = false;
+
+    public bool IsActive => _isCutsceneActive;
+
+    public void AdvanceCutscene()
+    {
+        if (_isCutsceneActive)
+        {
+            _waitingForInput = false;
+        }
+    }
 
     void Awake()
     {
@@ -62,21 +76,20 @@ public class CutsceneController : MonoBehaviour
     public void StartCutscene()
     {
         if (_isCutsceneActive) return;
+        _isCutsceneActive = true;
+        _activeCutscenesCount++;
         StartCoroutine(PlaySequence());
     }
 
     private IEnumerator PlaySequence()
     {
-        _isCutsceneActive = true;
-        
         if (virtualCamera != null)
             _originalCameraFollow = virtualCamera.Follow;
 
-        // Ensure CG display is set up for fading
         CanvasGroup cgGroup = null;
         if (cgDisplayImage != null)
         {
-            cgDisplayImage.raycastTarget = false; // Important: Never block dialogue clicks!
+            cgDisplayImage.raycastTarget = false; 
             cgGroup = cgDisplayImage.GetComponent<CanvasGroup>();
             if (cgGroup == null) cgGroup = cgDisplayImage.gameObject.AddComponent<CanvasGroup>();
             cgGroup.alpha = 0;
@@ -88,7 +101,6 @@ public class CutsceneController : MonoBehaviour
             switch (step.type)
             {
                 case CutsceneStepType.Dialogue:
-                    // Show CG simultaneously if provided
                     if (cgDisplayImage != null && step.cgImage != null)
                     {
                         cgDisplayImage.sprite = step.cgImage;
@@ -105,7 +117,6 @@ public class CutsceneController : MonoBehaviour
                 case CutsceneStepType.CameraFocus:
                     if (virtualCamera != null && step.cameraTarget != null)
                         virtualCamera.Follow = step.cameraTarget;
-                    // For camera focus, we don't wait if duration is 0
                     if (step.duration > 0) yield return new WaitForSeconds(step.duration);
                     break;
 
@@ -122,23 +133,39 @@ public class CutsceneController : MonoBehaviour
                     if (cgGroup != null)
                         yield return StartCoroutine(FadeCanvasGroup(cgGroup, 0, step.duration));
                     if (cgDisplayImage != null) cgDisplayImage.gameObject.SetActive(false);
+                    // HideCG should usually auto-advance to keep the flow smooth
+                    if (step.advanceMode == AdvanceMode.Auto) continue; 
                     break;
 
                 case CutsceneStepType.FadeOut:
+                    if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) DialogueUI.Instance.ForceStop();
                     yield return ScreenFader.Instance.FadeOutCoroutine(step.duration);
-                    break;
+                    // Fades MUST skip the manual wait at the bottom
+                    continue; 
 
                 case CutsceneStepType.FadeIn:
+                    if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) DialogueUI.Instance.ForceStop();
                     yield return ScreenFader.Instance.FadeInCoroutine(step.duration);
-                    break;
+                    // Fades MUST skip the manual wait at the bottom
+                    continue; 
 
                 case CutsceneStepType.Wait:
-                    yield return new WaitForSeconds(step.duration);
+                    if (step.advanceMode == AdvanceMode.Auto)
+                    {
+                        yield return new WaitForSeconds(step.duration);
+                    }
                     break;
 
                 case CutsceneStepType.UnityEvent:
                     step.customEvent?.Invoke();
                     break;
+            }
+
+            // Universal Manual Advance check for specific types (ShowCG, Wait, etc.)
+            if (step.advanceMode == AdvanceMode.Manual && step.type != CutsceneStepType.Dialogue)
+            {
+                _waitingForInput = true;
+                yield return new WaitUntil(() => !_waitingForInput);
             }
         }
 
@@ -161,8 +188,14 @@ public class CutsceneController : MonoBehaviour
 
     private void EndCutscene()
     {
-        // Only reset the camera if we are NOT currently recording a shadow.
-        // If we ARE recording, the RecordingService should stay in control.
+        if (!_isCutsceneActive) return;
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null && player.TryGetComponent<PlayerInputController>(out var input))
+        {
+            input.SetInputLocked(false);
+        }
+
         if (virtualCamera != null)
         {
             bool isRecording = RecordingService.Instance != null && RecordingService.Instance.IsRecordingShadow;
@@ -173,5 +206,6 @@ public class CutsceneController : MonoBehaviour
         }
 
         _isCutsceneActive = false;
+        _activeCutscenesCount--;
     }
 }

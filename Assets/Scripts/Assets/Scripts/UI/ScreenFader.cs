@@ -2,29 +2,77 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// A professional-grade Screen Fader.
+/// Uses Render Layers and Overlay mode to ensure it stays on top of gameplay.
+/// </summary>
+[RequireComponent(typeof(Canvas))]
 public class ScreenFader : MonoBehaviour
 {
     public static ScreenFader Instance { get; private set; }
 
+    [Header("UI Components")]
     [SerializeField] private Image fadeImage;
+    
+    [Header("Professional Settings")]
+    [Tooltip("The Render Mode should be ScreenSpaceOverlay for global transitions.")]
+    [SerializeField] private RenderMode renderMode = RenderMode.ScreenSpaceOverlay;
+    
+    [Tooltip("Professional Practice: Use a dedicated 'Transition' Sorting Layer in your project settings.")]
+    [SerializeField] private string sortingLayerName = "UI"; 
+    
+    [Tooltip("Order within the layer. If using ScreenSpaceOverlay, this is relative to other Overlay canvases.")]
+    [SerializeField] private int sortingOrder = 50; 
+
     [SerializeField] private float defaultFadeDuration = 1.0f;
 
+    private Canvas _canvas;
     private Coroutine _fadeCoroutine;
 
     void Awake()
     {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        else { Destroy(gameObject); return; }
 
-        if (fadeImage != null)
+        _canvas = GetComponent<Canvas>();
+        ConfigureCanvas();
+        SetupFadeImage();
+    }
+
+    private void ConfigureCanvas()
+    {
+        _canvas.renderMode = renderMode;
+        _canvas.overrideSorting = true;
+        
+        // Use the string-based layer name if it exists, otherwise it defaults to 'UI'
+        // Note: You must create the layer in 'Project Settings > Tags and Layers' for this to change
+        _canvas.sortingLayerName = sortingLayerName;
+        _canvas.sortingOrder = sortingOrder;
+        
+        // Remove Raycaster so it doesn't block UI when transparent
+        if (TryGetComponent<GraphicRaycaster>(out var raycaster))
         {
-            // Ensure the image covers the screen and starts transparent
-            fadeImage.gameObject.SetActive(true);
-            fadeImage.raycastTarget = false; // By default, don't block clicks
-            Color c = fadeImage.color;
-            c.a = 0;
-            fadeImage.color = c;
+            Destroy(raycaster);
         }
+    }
+
+    private void SetupFadeImage()
+    {
+        if (fadeImage == null) return;
+
+        RectTransform rect = fadeImage.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.one;
+        rect.localScale = Vector3.one;
+
+        fadeImage.gameObject.SetActive(true);
+        fadeImage.raycastTarget = false; 
+        
+        Color c = fadeImage.color;
+        c.a = 0;
+        fadeImage.color = c;
     }
 
     public void FadeIn(float duration = -1) => StartFade(0, duration);
@@ -56,8 +104,5 @@ public class ScreenFader : MonoBehaviour
         }
 
         fadeImage.color = new Color(fadeImage.color.r, fadeImage.color.g, fadeImage.color.b, targetAlpha);
-        
-        // Only block clicks if we are fully faded out (black screen)
-        fadeImage.raycastTarget = targetAlpha >= 0.95f;
     }
 }

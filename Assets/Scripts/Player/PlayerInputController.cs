@@ -13,15 +13,26 @@ public class PlayerInputController : MonoBehaviour
         _playerController = GetComponent<PlayerController>();
     }
 
+    private bool _inputLocked = false;
+
+    public void SetInputLocked(bool locked)
+    {
+        _inputLocked = locked;
+        if (locked) _moveInput = Vector2.zero;
+    }
+
     void Update()
     {
-        // Force stop movement if dialogue is open
-        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+        // Force stop input if dialogue is open or input is locked or cutscene is active
+        if (_inputLocked || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) || CutsceneController.AnyCutsceneActive)
         {
             _moveInput = Vector2.zero;
         }
+    }
 
-        // The _moveInput is updated by OnMove, so we apply it here
+    void FixedUpdate()
+    {
+        // The _moveInput is updated by OnMove, and we apply it here in the physics loop
         PlayerController activeController = GetActiveController();
         if (activeController != null)
         {
@@ -53,6 +64,11 @@ public class PlayerInputController : MonoBehaviour
             return;
         }
 
+        if (CutsceneController.AnyCutsceneActive || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen))
+        {
+            return;
+        }
+
         PlayerController activeController = GetActiveController();
         if (activeController != null)
         {
@@ -65,7 +81,23 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnJump(InputAction.CallbackContext context)
     {
-        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) return;
+        if (context.performed)
+        {
+            // Allow Space (Jump action) to advance dialogue or cutscene
+            if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+            {
+                DialogueUI.Instance.AdvanceDialogue();
+                return;
+            }
+
+            if (CutsceneController.AnyCutsceneActive)
+            {
+                CutsceneController[] controllers = FindObjectsByType<CutsceneController>(FindObjectsSortMode.None);
+                foreach (var c in controllers) if (c.IsActive) c.AdvanceCutscene();
+            }
+        }
+
+        if (CutsceneController.AnyCutsceneActive || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)) return;
 
         PlayerController activeController = GetActiveController();
         if (activeController != null)
@@ -79,7 +111,7 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnRecord(InputAction.CallbackContext context)
     {
-        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) return;
+        if (CutsceneController.AnyCutsceneActive || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)) return;
 
         if (context.performed && RecordingService.Instance != null)
         {
@@ -89,7 +121,7 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnReplay(InputAction.CallbackContext context)
     {
-        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) return;
+        if (CutsceneController.AnyCutsceneActive || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)) return;
 
         if (context.performed && RecordingService.Instance != null)
         {
@@ -112,6 +144,13 @@ public class PlayerInputController : MonoBehaviour
                 return;
             }
 
+            if (CutsceneController.AnyCutsceneActive)
+            {
+                CutsceneController[] controllers = FindObjectsByType<CutsceneController>(FindObjectsSortMode.None);
+                foreach (var c in controllers) if (c.IsActive) c.AdvanceCutscene();
+                return;
+            }
+
             PlayerController activeController = GetActiveController();
             if (activeController != null)
             {
@@ -121,18 +160,23 @@ public class PlayerInputController : MonoBehaviour
                 
                 foreach (var collider in colliders)
                 {
-                    if (collider.TryGetComponent<IInteractable>(out var interactable))
+                    // Use GetComponents to find ALL interactable scripts on this object
+                    var interactables = collider.GetComponents<IInteractable>();
+                    if (interactables.Length > 0)
                     {
-                        interactable.Interact(activeController.gameObject);
+                        foreach (var interactable in interactables)
+                        {
+                            interactable.Interact(activeController.gameObject);
+                        }
                         
-                        // If we are currently recording, flag this interaction so the replay ghost can do it too.
+                        // If we are currently recording, flag this interaction
                         if (RecordingService.Instance != null && RecordingService.Instance.IsRecordingShadow)
                         {
                             RecordingService.Instance.FlagInteraction();
                         }
 
-                        Debug.Log("Interacted with: " + collider.name);
-                        break; // Interact with the first one found
+                        Debug.Log("Interacted with: " + collider.name + " (" + interactables.Length + " components)");
+                        break; // Move to the next collider if needed, but usually we stop at the first object
                     }
                 }
             }
@@ -141,7 +185,7 @@ public class PlayerInputController : MonoBehaviour
 
     public void OnMove(InputAction.CallbackContext context)
     {
-        if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+        if (CutsceneController.AnyCutsceneActive || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen))
         {
             _moveInput = Vector2.zero; // Stop movement while talking
             return;
@@ -160,18 +204,29 @@ public class PlayerInputController : MonoBehaviour
         }
     }
 
-    public void OnPoint(InputAction.CallbackContext context)
-    {
-        // Not used for character control; this is for UI interaction.
-    }
-
     public void OnClick(InputAction.CallbackContext context)
     {
-        // Not used for character control; this is for UI interaction.
+        if (context.performed)
+        {
+            // Allow clicking to advance dialogue or cutscene
+            if (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)
+            {
+                DialogueUI.Instance.AdvanceDialogue();
+                return;
+            }
+
+            if (CutsceneController.AnyCutsceneActive)
+            {
+                CutsceneController[] controllers = FindObjectsByType<CutsceneController>(FindObjectsSortMode.None);
+                foreach (var c in controllers) if (c.IsActive) c.AdvanceCutscene();
+            }
+        }
     }
 
     public void OnCycleSkill(InputAction.CallbackContext context)
     {
+        if (CutsceneController.AnyCutsceneActive || (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen)) return;
+
         if (context.performed)
         {
             float direction = context.ReadValue<float>();

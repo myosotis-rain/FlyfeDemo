@@ -1,0 +1,375 @@
+fileFormatVersion: 2
+guid: c24b913d1d3924fb2ada800832ef1b00
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2626938876185554912
+    second: Mech_MemorySwitch_0
+  - first:
+      213: 1716694848349142426
+    second: Mech_MemorySwitch_1
+  - first:
+      213: 5073983423633188949
+    second: Mech_MemorySwitch_2
+  - first:
+      213: -4562823976569223674
+    second: Mech_MemorySwitch_3
+  - first:
+      213: 2714920734369169834
+    second: Mech_MemorySwitch_4
+  - first:
+      213: 1891779086070658334
+    second: Mech_MemorySwitch_5
+  - first:
+      213: -698072139222596337
+    second: Mech_MemorySwitch_6
+  - first:
+      213: 8444422031723519508
+    second: Mech_MemorySwitch_7
+  - first:
+      213: -7744811896338403512
+    second: Mech_MemorySwitch_8
+  - first:
+      213: -6479903007646887808
+    second: Mech_MemorySwitch_9
+  - first:
+      213: 8263231918239560287
+    second: Mech_MemorySwitch_10
+  - first:
+      213: -5398289637239126115
+    second: Mech_MemorySwitch_11
+  - first:
+      213: -1010098869812325357
+    second: Mech_MemorySwitch_12
+  - first:
+      213: -615027424100578404
+    second: Mech_MemorySwitch_13
+  - first:
+      213: -8504499764172552932
+    second: Mech_MemorySwitch_14
+  - first:
+      213: 2548006177289931859
+    second: Mech_MemorySwitch_15
+  - first:
+      213: -5409924232333934138
+    second: Mech_MemorySwitch_16
+  - first:
+      213: 3250385866220859375
+    second: Mech_MemorySwitch_17
+  - first:
+      213: 5836103227588510526
+    second: Mech_MemorySwitch_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 200
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_0
+      rect:
+        serializedVersion: 2
+        x: 198
+        y: 19
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0ef24b16df2c47420800000000000000
+      internalID: 2626938876185554912
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_1
+      rect:
+        serializedVersion: 2
+        x: 1163
+        y: 13
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a9df79f7edce2d710800000000000000
+      internalID: 1716694848349142426
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_2
+      rect:
+        serializedVersion: 2
+        x: 2127
+        y: 19
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 55860e96a096a6640800000000000000
+      internalID: 5073983423633188949
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_4
+      rect:
+        serializedVersion: 2
+        x: 3070
+        y: 19
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa1ca6d06065da520800000000000000
+      internalID: 2714920734369169834
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_5
+      rect:
+        serializedVersion: 2
+        x: 4070
+        y: 19
+        width: 796
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e1531c24e03f04a10800000000000000
+      internalID: 1891779086070658334
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_6
+      rect:
+        serializedVersion: 2
+        x: 5096
+        y: 19
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f054a028613ff46f0800000000000000
+      internalID: -698072139222596337
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_8
+      rect:
+        serializedVersion: 2
+        x: 6052
+        y: 0
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 84fa7823d96e48490800000000000000
+      internalID: -7744811896338403512
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mech_MemorySwitch_9
+      rect:
+        serializedVersion: 2
+        x: 7020
+        y: 0
+        width: 800
+        height: 1200
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 080d83aeb82c216a0800000000000000
+      internalID: -6479903007646887808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: d00799672b69c4026bf43a3e9db7645f
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":800.0,"y":1200.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Mech_MemorySwitch_0: 2626938876185554912
+      Mech_MemorySwitch_1: 1716694848349142426
+      Mech_MemorySwitch_2: 5073983423633188949
+      Mech_MemorySwitch_3: -4562823976569223674
+      Mech_MemorySwitch_4: 2714920734369169834
+      Mech_MemorySwitch_5: 1891779086070658334
+      Mech_MemorySwitch_6: -698072139222596337
+      Mech_MemorySwitch_7: 8444422031723519508
+      Mech_MemorySwitch_8: -7744811896338403512
+      Mech_MemorySwitch_9: -6479903007646887808
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

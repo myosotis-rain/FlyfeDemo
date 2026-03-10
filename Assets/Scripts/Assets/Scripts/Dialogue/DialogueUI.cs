@@ -14,7 +14,7 @@ public class DialogueUI : MonoBehaviour
     [SerializeField] private TMP_Text dialogueText;
     [SerializeField] private Image portraitImage;
     [SerializeField] private GameObject continueIcon;
-    [SerializeField] private Button fullScreenClickArea; // New: A large invisible button that covers the screen
+    [SerializeField] private Button fullScreenClickArea; 
 
     [Header("Settings")]
     [SerializeField] private float defaultTypingSpeed = 0.03f;
@@ -30,7 +30,8 @@ public class DialogueUI : MonoBehaviour
     private bool _isTyping = false;
     private bool _cancelTyping = false;
     private Coroutine _typingCoroutine;
-    private Action _onEndCallback; // Directly track the trigger that started this
+    private Coroutine _autoAdvanceCoroutine;
+    private Action _onEndCallback; 
     private bool _autoAdvance = false;
 
     public event Action OnDialogueStarted;
@@ -56,13 +57,11 @@ public class DialogueUI : MonoBehaviour
                     dialoguePanel.AddComponent<GraphicRaycaster>();
             }
 
-            // Ensure the continue icon doesn't block clicks
             if (continueIcon != null && continueIcon.TryGetComponent<Image>(out var img))
             {
                 img.raycastTarget = false;
             }
 
-            // Hook up the full-screen button to advance dialogue
             if (fullScreenClickArea != null)
             {
                 fullScreenClickArea.onClick.RemoveAllListeners();
@@ -87,7 +86,7 @@ public class DialogueUI : MonoBehaviour
 
         _currentConversation = conversation;
         _currentLineIndex = 0;
-        _onEndCallback = onComplete; // Save the callback
+        _onEndCallback = onComplete; 
         _autoAdvance = auto;
         
         if (dialoguePanel != null)
@@ -106,12 +105,16 @@ public class DialogueUI : MonoBehaviour
 
         if (_isTyping)
         {
-            // If currently typing, skip the effect and show all text immediately
             _cancelTyping = true;
         }
         else
         {
-            // If done typing, move to the next line or end conversation
+            if (_autoAdvanceCoroutine != null)
+            {
+                StopCoroutine(_autoAdvanceCoroutine);
+                _autoAdvanceCoroutine = null;
+            }
+
             _currentLineIndex++;
             if (_currentLineIndex < _currentConversation.lines.Length)
             {
@@ -127,17 +130,20 @@ public class DialogueUI : MonoBehaviour
     private void DisplayLine()
     {
         if (_typingCoroutine != null) StopCoroutine(_typingCoroutine);
+        if (_autoAdvanceCoroutine != null)
+        {
+            StopCoroutine(_autoAdvanceCoroutine);
+            _autoAdvanceCoroutine = null;
+        }
 
         var line = _currentConversation.lines[_currentLineIndex];
         
-        // Update Name UI
         if (speakerNameText != null)
         {
             speakerNameText.text = line.speakerName;
             speakerNameText.gameObject.SetActive(!string.IsNullOrEmpty(line.speakerName));
         }
 
-        // Update Portrait UI
         if (portraitImage != null)
         {
             portraitImage.sprite = line.portrait;
@@ -163,7 +169,6 @@ public class DialogueUI : MonoBehaviour
         _isTyping = true;
         _cancelTyping = false;
         
-        // Set text and FORCE TMP to parse it immediately to get character counts
         dialogueText.text = line.text;
         dialogueText.maxVisibleCharacters = 0;
         dialogueText.ForceMeshUpdate(); 
@@ -181,7 +186,6 @@ public class DialogueUI : MonoBehaviour
 
             dialogueText.maxVisibleCharacters = i;
 
-            // Voice blip logic
             if (i % 2 == 0 && audioSource != null && line.voiceBlip != null)
             {
                 audioSource.pitch = 1f + UnityEngine.Random.Range(-pitchVariation, pitchVariation);
@@ -203,17 +207,25 @@ public class DialogueUI : MonoBehaviour
 
         if (continueIcon != null) continueIcon.SetActive(true);
 
-        // If Auto-Advance is on, wait a short moment and then go to the next line
         if (_autoAdvance)
         {
-            StartCoroutine(AutoAdvanceRoutine());
+            if (_autoAdvanceCoroutine != null) StopCoroutine(_autoAdvanceCoroutine);
+            _autoAdvanceCoroutine = StartCoroutine(AutoAdvanceRoutine());
         }
     }
 
     private IEnumerator AutoAdvanceRoutine()
     {
-        yield return new WaitForSeconds(autoAdvanceDelay); // Custom pause for reading
+        yield return new WaitForSeconds(autoAdvanceDelay);
+        _autoAdvanceCoroutine = null;
         if (IsOpen && !_isTyping) AdvanceDialogue();
+    }
+
+    public void ForceStop()
+    {
+        if (_typingCoroutine != null) StopCoroutine(_typingCoroutine);
+        if (_autoAdvanceCoroutine != null) StopCoroutine(_autoAdvanceCoroutine);
+        EndConversation();
     }
 
     private void EndConversation()
@@ -223,7 +235,7 @@ public class DialogueUI : MonoBehaviour
         if (fullScreenClickArea != null) fullScreenClickArea.gameObject.SetActive(false);
         
         OnDialogueEnded?.Invoke();
-        _onEndCallback?.Invoke(); // Execute the specific callback for this session
+        _onEndCallback?.Invoke(); 
         _onEndCallback = null;
     }
 }

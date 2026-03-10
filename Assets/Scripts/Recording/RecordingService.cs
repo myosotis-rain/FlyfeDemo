@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Cinemachine; // Updated for Unity 6+ Cinemachine
+using Unity.Cinemachine;
 
 [System.Serializable]
 public struct RecordedFrame
@@ -12,8 +12,8 @@ public struct RecordedFrame
 [System.Serializable]
 public struct ShadowMapping
 {
-    public string skillName; // e.g., "HoverSkill"
-    public GameObject prefab; // The specific variant for this skill
+    public string skillName;
+    public GameObject prefab;
 }
 
 public class RecordingService : MonoBehaviour
@@ -27,24 +27,25 @@ public class RecordingService : MonoBehaviour
 
     [Header("Recording Settings")]
     [SerializeField] private float maxRecordTime = 6f;
-    public float MaxRecordTime => maxRecordTime; // Public getter for other scripts to access
+    public float MaxRecordTime => maxRecordTime;
 
     [Header("Cinemachine")]
-    [SerializeField] private CinemachineCamera cinemachineCamera; // Corrected to CinemachineCamera for Unity 6+
+    [SerializeField] private CinemachineCamera cinemachineCamera;
 
     private GameObject _activeShadow;
     private Rigidbody2D _playerRb;
     private List<RecordedFrame> _recordedFrames = new List<RecordedFrame>();
-    private GameObject _recordedPrefab; // Remembers WHICH prefab we recorded with
+    private GameObject _recordedPrefab;
     private Vector3 _playerStartPosition;
     private float _timer;
     private bool _isRecording = false;
     private bool _interactedThisFrame = false;
+    private float _inputCooldown = 0f;
 
     public Rigidbody2D ActiveShadowRb { get; private set; }
     public Transform ActiveShadowFeet { get; private set; }
     public bool IsRecordingShadow => _isRecording;
-    public ShadowReplay ActiveReplay { get; private set; } // Tracks the currently active replay ghost
+    public ShadowReplay ActiveReplay { get; private set; }
 
     void Awake()
     {
@@ -65,6 +66,11 @@ public class RecordingService : MonoBehaviour
         ShadowReplay.OnReplayFinished -= HandleReplayFinished;
     }
 
+    void Update()
+    {
+        if (_inputCooldown > 0) _inputCooldown -= Time.deltaTime;
+    }
+
     void FixedUpdate()
     {
         if (!_isRecording || ActiveShadowRb == null) return;
@@ -80,56 +86,56 @@ public class RecordingService : MonoBehaviour
         if (_timer >= MaxRecordTime) EndRecording();
     }
 
-    public void FlagInteraction()
-    {
-        _interactedThisFrame = true;
-    }
+    public void FlagInteraction() => _interactedThisFrame = true;
 
     public void ToggleRecord()
     {
+        if (_inputCooldown > 0) return;
+
         if (!_isRecording) StartRecording();
         else EndRecording();
+    }
+
+    private void ResetWorldState()
+    {
+        // Find all KinematicPlatforms (even inactive ones in disabled folders)
+        KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var p in platforms) p.ResetState();
+
+        // Reset all IResettable interactables (Levers, Doors, Switches, Vines)
+        // CRITICAL: We MUST include Inactive objects because the folders are being toggled off
+        var resettables = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var r in resettables)
+        {
+            if (r is IResettable resettable) resettable.ResetState();
+        }
     }
 
     public void StartRecording()
     {
         if (!_playerRb) return;
 
-        // 1. Determine which prefab to use based on the player's active skill
+        // Determine Shadow Prefab
         GameObject prefabToSpawn = defaultShadowPrefab;
-        var playerSkillManager = _playerRb.GetComponent<SkillManager>();
-        
-        if (playerSkillManager != null && playerSkillManager.ActiveSkill != null)
+        var psm = _playerRb.GetComponent<SkillManager>();
+        if (psm != null && psm.ActiveSkill != null)
         {
-            string activeSkillName = playerSkillManager.ActiveSkill.GetType().Name;
+            string skillName = psm.ActiveSkill.GetType().Name;
             foreach (var mapping in shadowMappings)
             {
-                if (mapping.skillName == activeSkillName)
-                {
-                    prefabToSpawn = mapping.prefab;
-                    break;
-                }
+                if (mapping.skillName == skillName) { prefabToSpawn = mapping.prefab; break; }
             }
         }
+        _recordedPrefab = prefabToSpawn;
 
-        _recordedPrefab = prefabToSpawn; // Remember this for the replay phase
-
-        if (!prefabToSpawn) return;
-        
-        // Clean up any previous ghosts or active replays
         CleanupShadows(false); 
-        if (ActiveReplay != null)
-        {
-            Destroy(ActiveReplay.gameObject);
-            ActiveReplay = null;
-        }
 
         _isRecording = true;
         _timer = 0f;
         _recordedFrames.Clear();
         _playerStartPosition = _playerRb.transform.position;
-        
-        // Calculate Offset from platform manually
+
+        // Platform Offset logic
         Vector3 playerOffset = Vector3.zero;
         KinematicPlatform platformUnderPlayer = null;
         RaycastHit2D hit = Physics2D.Raycast(_playerRb.position, Vector2.down, 1.2f);
@@ -138,60 +144,37 @@ public class RecordingService : MonoBehaviour
             playerOffset = _playerRb.transform.position - platformUnderPlayer.transform.position;
         }
 
-        // Freeze Player and make it darker
+        // Darken Player
         _playerRb.simulated = false;
-        SpriteRenderer[] playerSprites = _playerRb.GetComponentsInChildren<SpriteRenderer>();
-        foreach (var sprite in playerSprites)
-        {
-            sprite.color = new Color(0.6f, 0.6f, 0.6f, 1.0f); // Subtly darken the inactive player
-        }
+        foreach (var sprite in _playerRb.GetComponentsInChildren<SpriteRenderer>())
+            sprite.color = new Color(0.6f, 0.6f, 0.6f, 1.0f);
 
-        // Reset Platforms
-        KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
-        foreach (var p in platforms) p.ResetState();
+        // SWAP FIRST so we can find the memory objects to reset them
+        GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Memory);
+        ResetWorldState();
         
-        // Snap Player to Platform Start
         Vector3 snapPos = _playerRb.transform.position;
-        if (platformUnderPlayer != null)
-        {
-            snapPos = platformUnderPlayer.transform.position + playerOffset;
-            _playerRb.transform.position = snapPos;
-        }
+        if (platformUnderPlayer != null) snapPos = platformUnderPlayer.transform.position + playerOffset;
 
-        // Spawn Shadow (Parented to actorRoot to keep scale at 1,1,1)
-        _activeShadow = Instantiate(prefabToSpawn, snapPos, Quaternion.identity, actorRoot);
+        // Spawn Shadow
+        _activeShadow = Instantiate(_recordedPrefab, snapPos, Quaternion.identity, actorRoot);
         _activeShadow.name = "ACTIVE_RECORDING_SHADOW";
         _activeShadow.tag = Tags.Shadow;
+
+        // Ignore collision with player to prevent jitter
+        IgnoreCollisionWithPlayer(_activeShadow);
 
         ActiveShadowRb = _activeShadow.GetComponent<Rigidbody2D>();
         ActiveShadowFeet = _activeShadow.transform.Find("ShadowGroundCheck");
 
-        // --- NEW: Sync Physics Settings ---
-        var playerController = _playerRb.GetComponent<PlayerController>();
-        var shadowController = _activeShadow.GetComponent<PlayerController>();
-        if (playerController != null && shadowController != null)
-        {
-            // We use reflection or helper methods if these were public, 
-            // but for now, let's ensure the shadow has the same setup.
-            // Since we can't access private fields easily, I'll add a Sync method to PlayerController.
-            shadowController.SyncSettings(playerController);
-        }
+        // Sync Shadow
+        var pc = _playerRb.GetComponent<PlayerController>();
+        var sc = _activeShadow.GetComponent<PlayerController>();
+        if (pc && sc) sc.SyncSettings(pc);
 
-        // Sync the active skill from the player to the shadow
-        var shadowSkillManager = _activeShadow.GetComponent<SkillManager>();
-        if (playerSkillManager != null && shadowSkillManager != null && playerSkillManager.ActiveSkillType != null)
-        {
-            shadowSkillManager.SetActiveSkill(playerSkillManager.ActiveSkillType);
-            Debug.Log("Shadow spawned and synced with skill: " + playerSkillManager.ActiveSkillType.Name);
-        }
-        else if (shadowSkillManager == null)
-        {
-            Debug.LogError("The spawned shadow prefab is missing a SkillManager component!");
-        }
+        var ssm = _activeShadow.GetComponent<SkillManager>();
+        if (psm && ssm && psm.ActiveSkillType != null) ssm.SetActiveSkill(psm.ActiveSkillType);
 
-        GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Memory);
-
-        // Cinemachine: Switch camera to follow the active shadow
         SyncCameraToActiveShadow();
     }
 
@@ -199,120 +182,117 @@ public class RecordingService : MonoBehaviour
     {
         if (cinemachineCamera != null && _activeShadow != null)
         {
+            // Simply tell Cinemachine to follow the new object and inform it we snapped
             cinemachineCamera.Follow = _activeShadow.transform;
+            cinemachineCamera.OnTargetObjectWarped(_activeShadow.transform, Vector3.zero);
+            
+            ResyncConfiner();
         }
     }
 
-            public void EndRecording()
+    public void EndRecording()
+    {
+        if (!_isRecording) return;
+        _isRecording = false;
+
+        _playerRb.simulated = true;
+        _playerRb.transform.position = _playerStartPosition;
+        foreach (var sprite in _playerRb.GetComponentsInChildren<SpriteRenderer>()) sprite.color = Color.white;
+
+        if (_activeShadow) Destroy(_activeShadow);
+        ActiveShadowRb = null;
+
+        // SWAP FIRST then RESET
+        GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Present);
+        ResetWorldState();
+
+        if (cinemachineCamera != null && _playerRb != null)
+        {
+            cinemachineCamera.Follow = _playerRb.transform;
+            cinemachineCamera.OnTargetObjectWarped(_playerRb.transform, Vector3.zero);
+            ResyncConfiner();
+        }
+
+        PlayLatestRecording();
+    }
+
+    private void IgnoreCollisionWithPlayer(GameObject shadow)
+    {
+        if (_playerRb == null || shadow == null) return;
+        
+        Collider2D playerCol = _playerRb.GetComponent<Collider2D>();
+        Collider2D shadowCol = shadow.GetComponent<Collider2D>();
+        
+        if (playerCol != null && shadowCol != null)
+        {
+            Physics2D.IgnoreCollision(playerCol, shadowCol, true);
+        }
+    }
+
+    public void PlayLatestRecording()
+    {
+        if (_recordedFrames == null || _recordedFrames.Count < 10 || _recordedPrefab == null) return;
+
+        if (ActiveReplay != null) Destroy(ActiveReplay.gameObject);
+
+        // SWAP FIRST then RESET so the objects in the folder are reset correctly
+        GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Replay);
+        ResetWorldState();
+
+        var presentWorld = GameStateManager.Instance.presentWorldFolder;
+        if (presentWorld != null)
+        {
+            GameObject ghost = Instantiate(_recordedPrefab, _recordedFrames[0].position, Quaternion.identity, presentWorld.transform);
+            ghost.name = "REPLAY_GHOST";
+            ghost.tag = Tags.Shadow;
+
+            // Ignore collision with player to prevent jitter
+            IgnoreCollisionWithPlayer(ghost);
+
+            var replay = ghost.GetComponent<ShadowReplay>();
+            if (replay != null)
             {
-                if (!_isRecording) return;
-                _isRecording = false;
-        
-                // Restore player control and color
-                _playerRb.simulated = true;
-                _playerRb.transform.position = _playerStartPosition;
-                SpriteRenderer[] playerSprites = _playerRb.GetComponentsInChildren<SpriteRenderer>();
-                foreach (var sprite in playerSprites)
-                {
-                    sprite.color = Color.white;
-                }        
-                // Clean up the active shadow immediately
-                if (_activeShadow)
-                {
-                    Destroy(_activeShadow);
-                    _activeShadow = null;
-                }
-                ActiveShadowRb = null;
-                ActiveShadowFeet = null;
-        
-                // Reset platforms
-                KinematicPlatform[] platforms = FindObjectsByType<KinematicPlatform>(FindObjectsSortMode.None);
-                foreach (var p in platforms) p.ResetState();
-        
-                // Always return to the Present state when recording is finished.
-                GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Present);
+                replay.Init(new List<RecordedFrame>(_recordedFrames));
+                ActiveReplay = replay;
 
-                // Switch camera back to the player
                 if (cinemachineCamera != null && _playerRb != null)
                 {
+                    cinemachineCamera.OnTargetObjectWarped(_playerRb.transform, _playerRb.transform.position - cinemachineCamera.transform.position);
                     cinemachineCamera.Follow = _playerRb.transform;
+                    ResyncConfiner();
                 }
+            }
+        }
+    }
 
-                // Automatically start the replay after recording ends
-                PlayLatestRecording();
-                }
+    private void ResyncConfiner()
+    {
+        var confiner = cinemachineCamera.GetComponent<CinemachineConfiner2D>();
+        if (confiner != null) confiner.InvalidateBoundingShapeCache();
+        ParallaxLayer.ResyncAll();
+    }
 
-                public void PlayLatestRecording()
-                {
-                if (_recordedFrames == null || _recordedFrames.Count < 10 || _recordedPrefab == null) return;
+    private void CleanupShadows(bool replayOnly = false)
+    {
+        if (ActiveReplay != null) Destroy(ActiveReplay.gameObject);
+        if (!replayOnly && _activeShadow != null) Destroy(_activeShadow);
+    }
 
-                // If a replay is already active, destroy it before creating a new one.
-                if (ActiveReplay != null)
-                {
-                    Destroy(ActiveReplay.gameObject);
-                    ActiveReplay = null;
-                }
+    public float GetProgress() => Mathf.Clamp01(_timer / MaxRecordTime);
+    private void HandleReplayFinished() 
+    { 
+        if (cinemachineCamera != null && _playerRb != null) cinemachineCamera.Follow = _playerRb.transform; 
+        _inputCooldown = 0.5f; 
+    }
 
-                var presentWorld = GameStateManager.Instance.presentWorldFolder;
-                if (presentWorld != null)
-                {
-                    GameObject ghost = Instantiate(_recordedPrefab, _recordedFrames[0].position, Quaternion.identity, presentWorld.transform);
-                    ghost.name = "REPLAY_GHOST";
-                    ghost.tag = Tags.Shadow;
-                    var replayComponent = ghost.GetComponent<ShadowReplay>();
-                    if (replayComponent != null)
-                    {
-                        replayComponent.Init(new List<RecordedFrame>(_recordedFrames));
-                        ActiveReplay = replayComponent;
-                        GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Replay);
-
-                        // Switch camera back to the player during replay
-                        if (cinemachineCamera != null && _playerRb != null)
-                        {
-                            cinemachineCamera.Follow = _playerRb.transform;
-                        }
-                    }
-                }
-                }
-
-                private void CleanupShadows(bool replayOnly = false)
-                {
-                // This is now a general cleanup. Let's use our direct references.
-                if (ActiveReplay != null)
-                {
-                    Destroy(ActiveReplay.gameObject);
-                    ActiveReplay = null;
-                }
-
-                if (!replayOnly)
-                {
-                    if (_activeShadow != null)
-                    {
-                        Destroy(_activeShadow);
-                        _activeShadow = null;
-                    }
-                }
-                }
-
-                public float GetProgress() => Mathf.Clamp01(_timer / MaxRecordTime);
-
-                private void HandleReplayFinished()
-                {
-                ActiveReplay = null; // Clear the reference to the finished replay
-
-                // Ensure camera is following player when replay is done
-                if (cinemachineCamera != null && _playerRb != null)
-                {
-                    cinemachineCamera.Follow = _playerRb.transform;
-                }
-                }
     public void ForceResetToPresent()
     {
-        if (_isRecording) EndRecording(); // If recording, ending it will handle reset
+        if (_isRecording) EndRecording();
         else
         {
             CleanupShadows();
             GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Present);
+            ResetWorldState();
         }
     }
 }

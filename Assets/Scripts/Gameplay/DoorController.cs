@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class DoorController : MonoBehaviour
+public class DoorController : MonoBehaviour, IResettable
 {
     [SerializeField] private Vector3 positionOffsetWhenOpen = new Vector3(0, 3, 0); // Direction and distance to move
     [SerializeField] private float slideSpeed = 5f;
@@ -11,6 +11,12 @@ public class DoorController : MonoBehaviour
     void Awake()
     {
         closedPos = transform.position;
+        targetPos = closedPos;
+    }
+
+    public void ResetState()
+    {
+        transform.position = closedPos;
         targetPos = closedPos;
     }
 
