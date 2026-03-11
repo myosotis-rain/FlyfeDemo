@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.InputSystem;
+using Flyfe.Core;
 
 namespace Flyfe.Gameplay
 {
@@ -36,6 +36,15 @@ namespace Flyfe.Gameplay
             {
                 _startRot = pivotTransform.localRotation;
                 _endRot = Quaternion.Euler(0, 0, targetAngle);
+                
+                // Ignore Player/Shadow collisions to prevent glitches
+                Collider2D[] childColliders = pivotTransform.GetComponentsInChildren<Collider2D>();
+                foreach (var col in childColliders)
+                {
+                    GameObject player = GameObject.FindGameObjectWithTag(Tags.Player);
+                    if (player != null && player.TryGetComponent<Collider2D>(out var pCol))
+                        Physics2D.IgnoreCollision(col, pCol, true);
+                }
             }
         }
 
@@ -43,54 +52,84 @@ namespace Flyfe.Gameplay
         {
             _isOn = _initialState;
             _outOfRangeTimer = 0f;
-            
-            if (pivotTransform != null)
-            {
-                pivotTransform.localRotation = _isOn ? _endRot : _startRot;
-            }
-            
-            if (_isOn) onSwitchOn.Invoke();
-            else onSwitchOff.Invoke();
+            if (pivotTransform != null) pivotTransform.localRotation = _isOn ? _endRot : _startRot;
+            // No events on reset to prevent recursive loops
         }
 
-        public void Interact(GameObject actor) => Toggle();
+        public void Interact(GameObject actor)
+        {
+            Debug.Log($"[RotarySwitch] {name} Interacted with by {actor.name}. Current State: {_isOn}");
+            if (!_isOn) SetState(true);
+            else SetState(false);
+        }
 
         public string GetInteractPrompt() => _isOn ? "Close" : "Open";
 
         void Update()
         {
+            // Smooth Visual Rotation
             if (pivotTransform != null)
             {
                 Quaternion targetRot = _isOn ? _endRot : _startRot;
                 pivotTransform.localRotation = Quaternion.Slerp(pivotTransform.localRotation, targetRot, Time.deltaTime * smoothSpeed);
             }
+            else
+            {
+                Debug.LogWarning($"[RotarySwitch] {name} has NO pivotTransform assigned!");
+            }
 
+            // AUTO-OFF LOGIC
             if (_isOn && autoOff)
             {
-                GameObject player = GameObject.FindGameObjectWithTag("Player");
-                if (player != null)
+                bool isNear = false;
+                GameObject player = GameObject.FindGameObjectWithTag(Tags.Player);
+                if (player != null && Vector2.Distance(player.transform.position, transform.position) <= interactRange)
                 {
-                    float dist = Vector2.Distance(player.transform.position, transform.position);
-                    if (dist > interactRange)
+                    isNear = true;
+                }
+
+                // Shadows can also keep it open
+                if (!isNear)
+                {
+                    GameObject[] shadows = GameObject.FindGameObjectsWithTag(Tags.Shadow);
+                    foreach (var s in shadows)
                     {
-                        _outOfRangeTimer += Time.deltaTime;
-                        if (_outOfRangeTimer >= bufferTime) Toggle();
+                        if (Vector2.Distance(s.transform.position, transform.position) <= interactRange)
+                        {
+                            isNear = true;
+                            break;
+                        }
                     }
-                    else
+                }
+
+                if (isNear)
+                {
+                    _outOfRangeTimer = 0f; // Reset timer while someone is here
+                }
+                else
+                {
+                    _outOfRangeTimer += Time.deltaTime;
+                    if (_outOfRangeTimer >= bufferTime)
                     {
-                        _outOfRangeTimer = 0f;
+                        Debug.Log($"[RotarySwitch] {name} auto-closing due to range.");
+                        SetState(false);
                     }
                 }
             }
         }
 
-        public void Toggle()
+        private void SetState(bool on)
         {
-            _isOn = !_isOn;
+            Debug.Log($"[RotarySwitch] Attempting to set state to: {on}. Previous: {_isOn}");
+            if (_isOn == on) return; // Prevent redundant firing
+            
+            _isOn = on;
             _outOfRangeTimer = 0f;
 
             if (_isOn) onSwitchOn.Invoke();
             else onSwitchOff.Invoke();
+            
+            Debug.Log($"<color=cyan>[RotarySwitch]</color> {name} confirmed transition to {(_isOn ? "ON" : "OFF")}");
         }
     }
 }

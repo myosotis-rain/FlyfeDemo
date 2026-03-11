@@ -40,7 +40,13 @@ namespace Flyfe.Core
 
         private void Start()
         {
-            SwapWorld(WorldState.Present);
+            // First time setup: Do NOT call SwapWorld because it forces a camera teleport
+            // Just set the initial active states
+            if (presentWorldFolder != null) presentWorldFolder.SetActive(true);
+            if (memoryWorldFolder != null) memoryWorldFolder.SetActive(false);
+            
+            CurrentState = WorldState.Present;
+            UpdateCameraBoundaries(CurrentState);
         }
 
         /// <summary>
@@ -48,6 +54,7 @@ namespace Flyfe.Core
         /// </summary>
         public void SwapWorld(WorldState state)
         {
+            if (CurrentState == state) return;
             CurrentState = state;
             
             // Toggle Folders based on state
@@ -55,9 +62,6 @@ namespace Flyfe.Core
             
             if (presentWorldFolder != null)
             {
-                // In Memory state, we typically hide the present world or dim it.
-                // If your game requires both to be active for physics, keep this true.
-                // But for a visual swap, we should toggle it.
                 presentWorldFolder.SetActive(!isMemory); 
             }
             

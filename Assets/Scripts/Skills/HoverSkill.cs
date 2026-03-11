@@ -14,38 +14,53 @@ namespace Flyfe.Skills
 
         public bool IsActive => _isActive;
 
-        void Update()
-        {
-            if (_isActive && _characterRb != null)
-            {
-                _currentDuration -= Time.deltaTime;
-                if (_currentDuration <= 0) EndSkill(_characterRb);
-                
-                _characterRb.gravityScale = 0;
-                _characterRb.linearVelocity = new Vector2(_characterRb.linearVelocity.x, 0);
-            }
-        }
-
         public void StartSkill(Rigidbody2D rb)
         {
-            if (!_hasCharge) { Debug.Log(name + " Hover failed: No Charge!"); return; }
-            if (_isActive) return;
+            // TOGGLE LOGIC: If already active, pressing the button again cancels the skill
+            if (_isActive)
+            {
+                EndSkill(rb);
+                return;
+            }
 
-            Debug.Log(name + " Hover STARTED!");
+            if (!_hasCharge) return;
+
+            Debug.Log(name + " Hover STARTED (Toggle)!");
             _characterRb = rb;
             _isActive = true;
             _hasCharge = false;
             _currentDuration = maxDuration;
             _originalGravityScale = rb.gravityScale;
+            
+            rb.gravityScale = 0;
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0);
         }
 
-        public void UpdateSkill(Rigidbody2D rb) { }
+        public void UpdateSkill(Rigidbody2D rb)
+        {
+            if (!_isActive) return;
+
+            _currentDuration -= Time.fixedDeltaTime;
+            
+            // CANCEL LOGIC: If the player presses 'Down', cancel the hover immediately
+            // We check the PlayerInput directly or rely on the Controller to call Cancel
+            
+            if (_currentDuration <= 0) 
+            {
+                EndSkill(rb);
+                return;
+            }
+            
+            rb.gravityScale = 0;
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0);
+        }
 
         public void EndSkill(Rigidbody2D rb)
         {
             if (!_isActive) return;
-            rb.gravityScale = _originalGravityScale;
+            if (rb != null) rb.gravityScale = _originalGravityScale;
             _isActive = false;
+            Debug.Log(name + " Hover ENDED.");
         }
 
         public void CancelSkill() => EndSkill(_characterRb);

@@ -4,6 +4,10 @@ using System.Collections;
 
 namespace Flyfe.Camera
 {
+    /// <summary>
+    /// Centralized manager for camera operations.
+    /// Simplified: Parallax layers now handle their own initialization, so we just focus on tracking.
+    /// </summary>
     public class CameraManager : MonoBehaviour
     {
         public static CameraManager Instance { get; private set; }
@@ -12,10 +16,7 @@ namespace Flyfe.Camera
         [SerializeField] private CinemachineCamera virtualCamera;
         [SerializeField] private CinemachineConfiner2D confiner;
 
-        private Vector3? _parallaxAnchor;
         private Transform _playerTransform;
-
-        public Vector3? ParallaxAnchor => _parallaxAnchor;
 
         private void Awake()
         {
@@ -26,17 +27,6 @@ namespace Flyfe.Camera
             if (confiner == null) confiner = FindFirstObjectByType<CinemachineConfiner2D>();
         }
 
-        private IEnumerator Start()
-        {
-            yield return new WaitForEndOfFrame();
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
-            {
-                _playerTransform = player.transform;
-                _parallaxAnchor = UnityEngine.Camera.main.transform.position;
-            }
-        }
-
         public void InitializeCamera(Transform target)
         {
             if (target == null || virtualCamera == null) return;
@@ -44,17 +34,11 @@ namespace Flyfe.Camera
             _playerTransform = target;
             virtualCamera.Follow = target;
 
-            // 1. Force the camera to move to the new Z-Depth immediately
+            // Instant Teleport
             Vector3 targetPosition = new Vector3(target.position.x, target.position.y, virtualCamera.transform.position.z);
-            
-            // 2. Invalidate the confiner cache so it doesn't "pull" the camera back to the old spot
             if (confiner != null) confiner.InvalidateBoundingShapeCache();
 
-            // 3. Teleport the camera transform directly (bypassing smoothing/damping)
             virtualCamera.transform.position = targetPosition;
-
-            // 4. Update the global anchor so parallax starts fresh from this new spot
-            _parallaxAnchor = targetPosition;
         }
 
         public void SetFollowTarget(Transform target, bool snap = true)
@@ -62,10 +46,7 @@ namespace Flyfe.Camera
             if (virtualCamera == null || target == null) return;
             
             virtualCamera.Follow = target;
-            if (snap)
-            {
-                InitializeCamera(target);
-            }
+            if (snap) InitializeCamera(target);
         }
 
         public void UpdateConfiner(PolygonCollider2D newBoundary = null)

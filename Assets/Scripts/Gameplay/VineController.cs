@@ -34,16 +34,7 @@ namespace Flyfe.Gameplay
         public void ResetState()
         {
             _isGrown = startsGrown;
-            if (_isGrown)
-            {
-                if (_animator != null) _animator.Play("GrownIdle", 0, 1f);
-                SetFlowerLength(segments.Length);
-            }
-            else
-            {
-                if (_animator != null) _animator.Play("Idle", 0, 0f);
-                SetFlowerLength(1); 
-            }
+            ApplyVisualState(true);
             
             if (_animator != null)
             {
@@ -52,19 +43,34 @@ namespace Flyfe.Gameplay
             }
         }
 
-        /// <summary>
-        /// CALLED BY ANIMATION EVENTS
-        /// </summary>
+        private void ApplyVisualState(bool immediate)
+        {
+            if (_isGrown)
+            {
+                if (_animator != null) 
+                {
+                    if (immediate) _animator.Play("GrownIdle", 0, 1f);
+                    else _animator.SetTrigger(GrowTrigger);
+                }
+                SetFlowerLength(segments.Length);
+            }
+            else
+            {
+                if (_animator != null) 
+                {
+                    if (immediate) _animator.Play("Idle", 0, 0f);
+                    else _animator.SetTrigger(ShrinkTrigger);
+                }
+                SetFlowerLength(1); 
+            }
+        }
+
         public void SetFlowerLength(int segmentCount)
         {
             if (segments == null || segments.Length == 0) return;
-
             for (int i = 0; i < segments.Length; i++)
             {
-                if (segments[i] != null)
-                {
-                    segments[i].enabled = (i < segmentCount);
-                }
+                if (segments[i] != null) segments[i].enabled = (i < segmentCount);
             }
         }
 
@@ -90,10 +96,22 @@ namespace Flyfe.Gameplay
             }
         }
 
-        public void Toggle()
+        /// <summary>
+        /// Explicit method for linking to RotarySwitch UnityEvents
+        /// </summary>
+        public void OnRotarySwitchChanged(bool isOn)
         {
-            if (_isGrown) Shrink();
-            else Grow();
+            if (isOn) Grow();
+            else Shrink();
+        }
+
+        /// <summary>
+        /// Explicit method for linking to MemorySwitch UnityEvents
+        /// </summary>
+        public void OnMemorySwitchChanged(bool isOn)
+        {
+            if (isOn) Grow();
+            else Shrink();
         }
 
         public bool IsGrown => _isGrown;

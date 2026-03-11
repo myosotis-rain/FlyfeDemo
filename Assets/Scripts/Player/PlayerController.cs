@@ -14,7 +14,8 @@ namespace Flyfe.Player
         [SerializeField] private float jumpForce = 12f;
 
         [Header("Slope Handling")]
-        [SerializeField] private float slopeRotateSpeed = 8f; 
+        [SerializeField] private float slopeRotateSpeed = 12f; 
+        [SerializeField] private float maxRotationAngle = 30f; 
         [SerializeField] private float raycastDistance = 0.3f; 
 
         [Header("Collision Layers")]
@@ -66,6 +67,11 @@ namespace Flyfe.Player
                 _skillManager?.ActiveSkill?.Recharge();
             }
 
+            if (IsSkillActive)
+            {
+                _skillManager.ActiveSkill.UpdateSkill(_rigidbody);
+            }
+
             ApplyMovement(_lastMoveInput);
             AlignWithGround();
         }
@@ -73,6 +79,15 @@ namespace Flyfe.Player
         private void UpdateGroundInfo()
         {
             if (groundCheck == null)
+            {
+                _isGrounded = false;
+                _onSlope = false;
+                _groundNormal = Vector2.up;
+                return;
+            }
+
+            // Priority: If we are on a vine, we are not "grounded" in a way that should trigger slope logic
+            if (IsOnVine())
             {
                 _isGrounded = false;
                 _onSlope = false;
@@ -110,6 +125,7 @@ namespace Flyfe.Player
             if (_isGrounded && _rigidbody.linearVelocity.y < 0.1f)
             {
                 targetAngle = Vector2.SignedAngle(Vector2.up, _groundNormal);
+                targetAngle = Mathf.Clamp(targetAngle, -maxRotationAngle, maxRotationAngle);
             }
             
             float currentAngle = _rigidbody.rotation;
@@ -135,9 +151,11 @@ namespace Flyfe.Player
 
             if (_animator != null)
             {
-                float animSpeed = _isGrounded ? Mathf.Abs(moveInput.x) : 0f;
+                float animSpeed = (isOnVine || _isGrounded) ? Mathf.Abs(moveInput.x) : 0f;
+                if (isOnVine && Mathf.Abs(moveInput.y) > 0.1f) animSpeed = Mathf.Abs(moveInput.y);
+                
                 _animator.SetFloat("Speed", animSpeed);
-                _animator.SetBool("Grounded", _isGrounded);
+                _animator.SetBool("Grounded", _isGrounded || isOnVine);
             }
 
             if (moveInput.x > 0.01f)
@@ -148,6 +166,8 @@ namespace Flyfe.Player
             if (isOnVine)
             {
                 _rigidbody.gravityScale = 0f;
+                // STABLE CLIMBING: We set velocity directly.
+                // We add a tiny bit of horizontal movement to allow getting off the vine.
                 _rigidbody.linearVelocity = new Vector2(moveInput.x * moveSpeed, moveInput.y * climbSpeed);
             }
             else if (IsSkillActive)
@@ -181,7 +201,10 @@ namespace Flyfe.Player
 
         public void Jump()
         {
-            if (_rigidbody == null || IsOnVine() || !_isGrounded) return;
+            if (_rigidbody == null) return;
+            
+            bool isOnVine = IsOnVine();
+            if (!isOnVine && !_isGrounded) return;
 
             _rigidbody.gravityScale = _initialGravityScale;
             _rigidbody.linearVelocity = new Vector2(_rigidbody.linearVelocity.x, jumpForce);
@@ -196,8 +219,9 @@ namespace Flyfe.Player
 
         private bool IsOnVine()
         {
-            if (groundCheck == null) return false;
-            return Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, vineLayer);
+            // Use a vertical capsule-like check to ensure we don't fall off the vine while climbing
+            Collider2D hit = Physics2D.OverlapBox(transform.position, new Vector2(0.7f, 1.2f), 0f, vineLayer);
+            return hit != null;
         }
     }
 }

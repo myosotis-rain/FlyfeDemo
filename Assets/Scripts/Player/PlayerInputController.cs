@@ -40,10 +40,17 @@ namespace Flyfe.Player
         {
             if (_inputLocked || CutsceneController.AnyCutsceneActive) return;
             
+            Vector2 moveInput = context.ReadValue<Vector2>();
+            
             PlayerController activeController = GetActiveController();
             if (activeController != null)
             {
-                activeController.Move(context.ReadValue<Vector2>());
+                if (moveInput.y < -0.1f && activeController.IsSkillActive)
+                {
+                    activeController.CancelSkill();
+                }
+                
+                activeController.Move(moveInput);
             }
         }
 
@@ -147,7 +154,6 @@ namespace Flyfe.Player
             if (activeController != null)
             {
                 if (context.performed) activeController.StartSkill();
-                else if (context.canceled) activeController.DeactivateSkill();
             }
         }
 
