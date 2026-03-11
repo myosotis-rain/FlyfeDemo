@@ -1,129 +1,96 @@
 using UnityEngine;
-using UnityEngine.Events; // 必须引入
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
-public class RotarySwitchController : MonoBehaviour, IInteractable, IResettable
+namespace Flyfe.Gameplay
 {
-    [Header("Hierarchy References")]
-    [SerializeField] private Transform pivotTransform; 
-    [SerializeField] private Transform backplate;
-
-    [Header("Auto-Off Settings")]
-    [SerializeField] private bool autoOff = true;
-    [SerializeField] private float interactRange = 3.5f;
-    [SerializeField] private float bufferTime = 1.0f; // 离开后多久自动关闭
-
-    [Header("Animation Settings")]
-    [SerializeField] private float targetAngle = -90f;
-    [SerializeField] private float smoothSpeed = 10f;
-
-    [Header("Events & Effects")]
-    public UnityEvent onSwitchOn;
-    public UnityEvent onSwitchOff;
-
-    private bool _isOn = false;
-    private Quaternion _startRot;
-    private Quaternion _endRot;
-    private float _outOfRangeTimer = 0f;
-    private bool _initialState;
-
-    void Awake()
+    public class RotarySwitchController : MonoBehaviour, IInteractable, IResettable
     {
-        _initialState = _isOn;
-        if (pivotTransform != null)
+        [Header("Hierarchy References")]
+        [SerializeField] private Transform pivotTransform; 
+        [SerializeField] private Transform backplate;
+
+        [Header("Auto-Off Settings")]
+        [SerializeField] private bool autoOff = true;
+        [SerializeField] private float interactRange = 3.5f;
+        [SerializeField] private float bufferTime = 1.0f; 
+
+        [Header("Animation Settings")]
+        [SerializeField] private float targetAngle = -90f;
+        [SerializeField] private float smoothSpeed = 10f;
+
+        [Header("Events & Effects")]
+        public UnityEvent onSwitchOn;
+        public UnityEvent onSwitchOff;
+
+        private bool _isOn = false;
+        private Quaternion _startRot;
+        private Quaternion _endRot;
+        private float _outOfRangeTimer = 0f;
+        private bool _initialState;
+
+        void Awake()
         {
-            _startRot = pivotTransform.localRotation;
-            _endRot = Quaternion.Euler(0, 0, targetAngle);
-        }
-    }
-
-    public void ResetState()
-    {
-        _isOn = _initialState;
-        _outOfRangeTimer = 0f;
-        
-        if (pivotTransform != null)
-        {
-            pivotTransform.localRotation = _isOn ? _endRot : _startRot;
-        }
-        
-        // Sync linked objects (like vines) to the initial state
-        if (_isOn) onSwitchOn.Invoke();
-        else onSwitchOff.Invoke();
-    }
-
-    public void Interact(GameObject actor)
-    {
-        Toggle();
-    }
-
-    public string GetInteractPrompt()
-    {
-        return _isOn ? "Close" : "Open";
-    }
-
-    void Update()
-    {
-        if (pivotTransform == null) return;
-        
-        // Handle Auto-Off Logic
-        if (autoOff && _isOn)
-        {
-            if (IsAnyPlayerInRange())
+            _initialState = _isOn;
+            if (pivotTransform != null)
             {
-                _outOfRangeTimer = 0f; // Reset timer if someone is nearby
+                _startRot = pivotTransform.localRotation;
+                _endRot = Quaternion.Euler(0, 0, targetAngle);
             }
-            else
+        }
+
+        public void ResetState()
+        {
+            _isOn = _initialState;
+            _outOfRangeTimer = 0f;
+            
+            if (pivotTransform != null)
             {
-                _outOfRangeTimer += Time.deltaTime;
-                if (_outOfRangeTimer >= bufferTime)
+                pivotTransform.localRotation = _isOn ? _endRot : _startRot;
+            }
+            
+            if (_isOn) onSwitchOn.Invoke();
+            else onSwitchOff.Invoke();
+        }
+
+        public void Interact(GameObject actor) => Toggle();
+
+        public string GetInteractPrompt() => _isOn ? "Close" : "Open";
+
+        void Update()
+        {
+            if (pivotTransform != null)
+            {
+                Quaternion targetRot = _isOn ? _endRot : _startRot;
+                pivotTransform.localRotation = Quaternion.Slerp(pivotTransform.localRotation, targetRot, Time.deltaTime * smoothSpeed);
+            }
+
+            if (_isOn && autoOff)
+            {
+                GameObject player = GameObject.FindGameObjectWithTag("Player");
+                if (player != null)
                 {
-                    Toggle(); // Auto-toggle off
+                    float dist = Vector2.Distance(player.transform.position, transform.position);
+                    if (dist > interactRange)
+                    {
+                        _outOfRangeTimer += Time.deltaTime;
+                        if (_outOfRangeTimer >= bufferTime) Toggle();
+                    }
+                    else
+                    {
+                        _outOfRangeTimer = 0f;
+                    }
                 }
             }
         }
 
-        Quaternion target = _isOn ? _endRot : _startRot;
-        pivotTransform.localRotation = Quaternion.Slerp(pivotTransform.localRotation, target, Time.deltaTime * smoothSpeed);
-    }
-
-    private bool IsAnyPlayerInRange()
-    {
-        // Check for the main player
-        GameObject player = GameObject.FindGameObjectWithTag(Tags.Player);
-        if (player != null && Vector2.Distance(transform.position, player.transform.position) <= interactRange)
-            return true;
-
-        // Check for the recording shadow
-        if (RecordingService.Instance != null && RecordingService.Instance.IsRecordingShadow)
+        public void Toggle()
         {
-            if (RecordingService.Instance.ActiveShadowRb != null)
-            {
-                if (Vector2.Distance(transform.position, RecordingService.Instance.ActiveShadowRb.position) <= interactRange)
-                    return true;
-            }
-        }
+            _isOn = !_isOn;
+            _outOfRangeTimer = 0f;
 
-        // Check for the replay ghost
-        GameObject ghost = GameObject.FindWithTag(Tags.Shadow); // Replay ghosts also have this tag
-        if (ghost != null && Vector2.Distance(transform.position, ghost.transform.position) <= interactRange)
-            return true;
-
-        return false;
-    }
-
-    public void Toggle()
-    {
-        _isOn = !_isOn;
-        _outOfRangeTimer = 0f; // Reset timer on manual toggle
-
-        if (_isOn)
-        {
-            onSwitchOn.Invoke();
-        }
-        else
-        {
-            onSwitchOff.Invoke();
+            if (_isOn) onSwitchOn.Invoke();
+            else onSwitchOff.Invoke();
         }
     }
 }

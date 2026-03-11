@@ -1,28 +1,32 @@
 using UnityEngine;
+using Flyfe.Core;
 
-public class SwitchController : MonoBehaviour
+namespace Flyfe.Gameplay
 {
-    [SerializeField] private DoorController door; // Drag the door object here in Inspector
-    private int pressCount = 0;
-
-    void OnTriggerEnter2D(Collider2D other)
+    public class SwitchController : MonoBehaviour
     {
-        if (other.CompareTag(Tags.Player) || other.CompareTag(Tags.Shadow))
-        {
-            pressCount++;
-            if (door != null) door.SetOpen(true);
-        }
-    }
+        [SerializeField] private DoorController door; 
+        private int pressCount = 0;
 
-    void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag(Tags.Player) || other.CompareTag(Tags.Shadow))
+        void OnTriggerEnter2D(Collider2D other)
         {
-            pressCount--;
-            if (pressCount <= 0)
+            if (other.CompareTag("Player") || other.CompareTag("Shadow"))
             {
-                pressCount = 0;
-                if (door != null) door.SetOpen(false);
+                pressCount++;
+                if (door != null) door.SetOpen(true);
+            }
+        }
+
+        void OnTriggerExit2D(Collider2D other)
+        {
+            if (other.CompareTag("Player") || other.CompareTag("Shadow"))
+            {
+                pressCount--;
+                if (pressCount <= 0)
+                {
+                    pressCount = 0;
+                    if (door != null) door.SetOpen(false);
+                }
             }
         }
     }

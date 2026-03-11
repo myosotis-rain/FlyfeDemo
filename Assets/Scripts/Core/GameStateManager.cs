@@ -1,105 +1,103 @@
 using System;
 using UnityEngine;
-using Unity.Cinemachine;
+using Flyfe.Camera;
+using Flyfe.Recording;
 
-public class GameStateManager : MonoBehaviour
+namespace Flyfe.Core
 {
-    public static GameStateManager Instance { get; private set; }
-
-    public enum WorldState { Present, Memory, Replay }
-    public WorldState CurrentState { get; private set; } = WorldState.Present;
-    
-    public static event Action<WorldState> OnWorldChanged;
-
-    [Header("Worlds")]
-    public GameObject presentWorldFolder;
-    public GameObject memoryWorldFolder;
-
-    [Header("Cinemachine")]
-    [SerializeField] private CinemachineCamera cinemachineCamera;
-
-    void Awake()
+    /// <summary>
+    /// Manages high-level game states and world swapping.
+    /// Professional Practice: Delegates technical implementation (Camera, UI) to specialized managers.
+    /// </summary>
+    public class GameStateManager : MonoBehaviour
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
-    }
+        public static GameStateManager Instance { get; private set; }
 
-    void OnEnable()
-    {
-        ShadowReplay.OnReplayFinished += HandleReplayFinished;
-    }
-
-    void OnDisable()
-    {
-        ShadowReplay.OnReplayFinished -= HandleReplayFinished;
-    }
-
-    void Start()
-    {
-        SwapWorld(WorldState.Present);
-    }
-
-    public void SwapWorld(WorldState state)
-    {
-        CurrentState = state;
+        public enum WorldState { Present, Memory, Replay }
+        public WorldState CurrentState { get; private set; } = WorldState.Present;
         
-        // Deactivate Present when in Memory to ensure background shows.
-        if (presentWorldFolder != null)
-            presentWorldFolder.SetActive(state == WorldState.Present || state == WorldState.Replay);
-        
-        if (memoryWorldFolder != null)
-            memoryWorldFolder.SetActive(state == WorldState.Memory);
-        
-        OnWorldChanged?.Invoke(CurrentState);
+        public static event Action<WorldState> OnWorldChanged;
 
-        // Update Camera Confiner to match the new world's boundaries
-        UpdateConfinerShape(state);
-        ParallaxLayer.ResyncAll();
-    }
+        [Header("World Folders")]
+        public GameObject presentWorldFolder;
+        public GameObject memoryWorldFolder;
 
-    private void UpdateConfinerShape(WorldState state)
-    {
-        if (cinemachineCamera == null) return;
-        
-        var confiner = cinemachineCamera.GetComponent<CinemachineConfiner2D>();
-        if (confiner == null) return;
-
-        // Find the boundary specifically for the active world
-        GameObject activeFolder = (state == WorldState.Memory) ? memoryWorldFolder : presentWorldFolder;
-        if (activeFolder == null) return;
-
-        // CRITICAL: Must find inactive colliders too because we just toggled the folder!
-        PolygonCollider2D boundaryShape = null;
-        var colliders = activeFolder.GetComponentsInChildren<PolygonCollider2D>(true);
-        
-        foreach (var col in colliders)
+        private void Awake()
         {
-            if (col.isTrigger) 
+            if (Instance == null) Instance = this;
+            else Destroy(gameObject);
+        }
+
+        private void OnEnable()
+        {
+            ShadowReplay.OnReplayFinished += HandleReplayFinished;
+        }
+
+        private void OnDisable()
+        {
+            ShadowReplay.OnReplayFinished -= HandleReplayFinished;
+        }
+
+        private void Start()
+        {
+            SwapWorld(WorldState.Present);
+        }
+
+        /// <summary>
+        /// Orchestrates a world swap by toggling folders and updating technical systems.
+        /// </summary>
+        public void SwapWorld(WorldState state)
+        {
+            CurrentState = state;
+            
+            // Toggle Folders based on state
+            bool isMemory = (state == WorldState.Memory);
+            
+            if (presentWorldFolder != null)
             {
-                boundaryShape = col;
-                break;
+                // In Memory state, we typically hide the present world or dim it.
+                // If your game requires both to be active for physics, keep this true.
+                // But for a visual swap, we should toggle it.
+                presentWorldFolder.SetActive(!isMemory); 
             }
+            
+            if (memoryWorldFolder != null)
+            {
+                memoryWorldFolder.SetActive(isMemory);
+            }
+            
+            // Notify Camera System
+            UpdateCameraBoundaries(state);
+            
+            OnWorldChanged?.Invoke(CurrentState);
         }
 
-        if (boundaryShape == null && colliders.Length > 0)
+        private void UpdateCameraBoundaries(WorldState state)
         {
-            boundaryShape = colliders[0];
+            if (CameraManager.Instance == null) return;
+
+            GameObject activeFolder = (state == WorldState.Memory) ? memoryWorldFolder : presentWorldFolder;
+            if (activeFolder == null) return;
+
+            // Find the boundary collider
+            PolygonCollider2D boundary = null;
+            var colliders = activeFolder.GetComponentsInChildren<PolygonCollider2D>(true);
+            
+            foreach (var col in colliders)
+            {
+                if (col.isTrigger) 
+                { 
+                    boundary = col; 
+                    break; 
+                }
+            }
+
+            CameraManager.Instance.UpdateConfiner(boundary);
         }
 
-        if (boundaryShape != null)
+        private void HandleReplayFinished()
         {
-            confiner.BoundingShape2D = boundaryShape;
-            confiner.InvalidateBoundingShapeCache();
+            SwapWorld(WorldState.Present);
         }
-        else
-        {
-            // If NO boundary is found, it's safer to clear the confiner than to have it stuck
-            confiner.BoundingShape2D = null;
-        }
-    }
-
-    private void HandleReplayFinished()
-    {
-        SwapWorld(WorldState.Present);
     }
 }

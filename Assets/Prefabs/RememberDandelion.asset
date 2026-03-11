@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3365d426b4829484886591ba991c0a66, type: 3}
+  m_Name: RememberDandelion
+  m_EditorClassIdentifier: Assembly-CSharp::Flyfe.Dialogue.DialogueConversation
+  lines:
+  - speakerName: Me
+    text: As far back as my memory reaches, Dandelion was always there.
+    portrait: {fileID: -741735076, guid: 78dccf96db139437c89f5deb1013cd51, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Me
+    text: Ever since the Great Flood, we cursed sprites have lost the sky and the
+      freedom to fly, left with only a fragile hover.
+    portrait: {fileID: -741735076, guid: 78dccf96db139437c89f5deb1013cd51, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Me
+    text: 'But Dandelion... she was different.
+
+      She knew how to lean into the
+      wind, letting it hold her in the air.'
+    portrait: {fileID: -741735076, guid: 78dccf96db139437c89f5deb1013cd51, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Dandelion
+    text: Sotis! I miss you --
+    portrait: {fileID: -4128887083241503271, guid: 220c64372503c4060823dbc219db2db9, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Me
+    text: 'We saw each other yesterday.
+
+      I always tell her.'
+    portrait: {fileID: -741735076, guid: 78dccf96db139437c89f5deb1013cd51, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Dandelion
+    text: Yeah. But I do miss you.
+    portrait: {fileID: -4128887083241503271, guid: 220c64372503c4060823dbc219db2db9, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Me
+    text: I miss you too.
+    portrait: {fileID: -741735076, guid: 78dccf96db139437c89f5deb1013cd51, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0
+  - speakerName: Me
+    text: She used to take me gliding across endless blooms, all the way to the Root
+      Tree's furthest edge. There, we gazed out at the perilous waves, dreaming of
+      what lay beyond.
+    portrait: {fileID: -741735076, guid: 78dccf96db139437c89f5deb1013cd51, type: 3}
+    voiceBlip: {fileID: 0}
+    customTypingSpeed: 0

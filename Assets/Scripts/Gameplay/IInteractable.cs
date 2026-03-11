@@ -1,7 +1,10 @@
 using UnityEngine;
 
-public interface IInteractable
+namespace Flyfe.Gameplay
 {
-    void Interact(GameObject user);
-    string GetInteractPrompt();
+    public interface IInteractable
+    {
+        void Interact(GameObject user);
+        string GetInteractPrompt();
+    }
 }

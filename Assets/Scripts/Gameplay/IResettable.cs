@@ -1,6 +1,9 @@
 using UnityEngine;
 
-public interface IResettable
+namespace Flyfe.Gameplay
 {
-    void ResetState();
+    public interface IResettable
+    {
+        void ResetState();
+    }
 }

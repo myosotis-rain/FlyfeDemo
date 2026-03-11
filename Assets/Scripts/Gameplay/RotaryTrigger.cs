@@ -1,35 +1,35 @@
 using UnityEngine;
-using UnityEngine.EventSystems; // Required for professional UI/Pointer events
+using UnityEngine.EventSystems;
 
-public class RotaryTrigger : MonoBehaviour, IPointerClickHandler, IInteractable
+namespace Flyfe.Gameplay
 {
-    private RotarySwitchController controller;
-
-    void Awake() => controller = GetComponentInParent<RotarySwitchController>();
-
-    public void Interact(GameObject user)
+    public class RotaryTrigger : MonoBehaviour, IPointerClickHandler, IInteractable
     {
-        if (controller != null) controller.Interact(user);
-    }
+        private RotarySwitchController controller;
 
-    public string GetInteractPrompt() => controller != null ? controller.GetInteractPrompt() : "";
-
-    // This is the professional way to handle clicks. 
-    // It works with the Event System and respects UI blocking.
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (controller != null)
+        void Awake()
         {
-            // Check distance to the player manually since the switch is a world object
-            GameObject player = GameObject.FindGameObjectWithTag(Tags.Player);
-            if (player != null)
+            controller = GetComponentInParent<RotarySwitchController>();
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null && controller != null)
             {
                 float dist = Vector2.Distance(player.transform.position, controller.transform.position);
-                if (dist <= 3.0f) // Standard interaction range
+                if (dist <= 3.0f) 
                 {
                     controller.Interact(player);
                 }
             }
         }
+
+        public void Interact(GameObject user)
+        {
+            if (controller != null) controller.Interact(user);
+        }
+
+        public string GetInteractPrompt() => controller != null ? controller.GetInteractPrompt() : "";
     }
 }

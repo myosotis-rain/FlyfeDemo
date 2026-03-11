@@ -1,140 +1,149 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Flyfe.Core;
+using Flyfe.Recording;
 
-public class UIManager : MonoBehaviour
+namespace Flyfe.UI
 {
-    [Header("UI Elements")]
-    [SerializeField] private MeterScript timerMeter; 
-    [SerializeField] private Text btnText;
-    [SerializeField] private GameObject skillSelectionPanel;
-    
-    [Header("Dynamic Positioning")]
-    [SerializeField] private Vector2 shadowFollowOffset; // An offset to position the meter above the shadow
-    [SerializeField] private float referenceHeight = 1080f; // The height at which the offset looks perfect
-
-    private RectTransform _meterRectTransform;
-    private Vector2 _meterOriginalAnchoredPos;
-
-    void Awake()
+    public class UIManager : MonoBehaviour
     {
-        if (timerMeter != null)
-        {
-            _meterRectTransform = timerMeter.GetComponent<RectTransform>();
-            _meterOriginalAnchoredPos = _meterRectTransform.anchoredPosition;
-        }
-    }
-
-    void OnEnable() => GameStateManager.OnWorldChanged += UpdateUI;
-    void OnDisable() => GameStateManager.OnWorldChanged -= UpdateUI;
-
-    void Start()
-    {
-        if (timerMeter != null && RecordingService.Instance != null)
-        {
-            timerMeter.SetMaxTime(RecordingService.Instance.MaxRecordTime);
-        }
-
-        // Force the panel to be hidden at the start of the game
-        if (skillSelectionPanel != null)
-        {
-            skillSelectionPanel.SetActive(false);
-        }
-    }
-
-    void Update()
-    {
-        if (timerMeter == null || GameStateManager.Instance == null || RecordingService.Instance == null) return;
-
-        var currentState = GameStateManager.Instance.CurrentState;
+        [Header("UI Elements")]
+        [SerializeField] private MeterScript timerMeter; 
+        [SerializeField] private Text btnText;
+        [SerializeField] private GameObject skillSelectionPanel;
         
-        if (currentState == GameStateManager.WorldState.Memory)
-        {
-            // --- Time Drain Logic (Recording) ---
-            float progress = RecordingService.Instance.GetProgress();
-            float remainingTime = (1f - progress) * RecordingService.Instance.MaxRecordTime;
-            timerMeter.SetTime(remainingTime);
+        [Header("Dynamic Positioning")]
+        [SerializeField] private Vector2 shadowFollowOffset; // An offset to position the meter above the shadow
+        [SerializeField] private float referenceHeight = 1080f; // The height at which the offset looks perfect
 
-            // --- Dynamic Positioning Logic ---
-            var activeShadow = RecordingService.Instance.ActiveShadowRb;
-            if (activeShadow != null && Camera.main != null)
+        private RectTransform _meterRectTransform;
+        private Vector2 _meterOriginalAnchoredPos;
+
+        void Awake()
+        {
+            if (timerMeter != null)
             {
-                Vector2 screenPoint = Camera.main.WorldToScreenPoint(activeShadow.position);
-                
-                // RESOLUTION FIX: Scale the offset based on current screen height
-                float scale = Screen.height / referenceHeight;
-                _meterRectTransform.position = screenPoint + (shadowFollowOffset * scale);
+                _meterRectTransform = timerMeter.GetComponent<RectTransform>();
+                _meterOriginalAnchoredPos = _meterRectTransform.anchoredPosition;
             }
         }
-        else if (currentState == GameStateManager.WorldState.Replay)
+
+        void OnEnable() => GameStateManager.OnWorldChanged += UpdateUI;
+        void OnDisable() => GameStateManager.OnWorldChanged -= UpdateUI;
+
+        void Start()
         {
-            // --- Time Drain Logic (Replaying) ---
-            var activeReplay = RecordingService.Instance.ActiveReplay;
-            if(activeReplay != null)
+            if (timerMeter != null && RecordingService.Instance != null)
             {
-                // We also drain the bar during replay to keep the visual language consistent.
-                float progress = activeReplay.ReplayProgress;
+                timerMeter.SetMaxTime(RecordingService.Instance.MaxRecordTime);
+            }
+
+            // Force the panel to be hidden at the start of the game
+            if (skillSelectionPanel != null)
+            {
+                skillSelectionPanel.SetActive(false);
+            }
+            
+            // Initial UI State
+            if (GameStateManager.Instance != null)
+                UpdateUI(GameStateManager.Instance.CurrentState);
+        }
+
+        void Update()
+        {
+            if (timerMeter == null || GameStateManager.Instance == null || RecordingService.Instance == null) return;
+
+            var currentState = GameStateManager.Instance.CurrentState;
+            
+            if (currentState == GameStateManager.WorldState.Memory)
+            {
+                // --- Time Drain Logic (Recording) ---
+                float progress = RecordingService.Instance.GetProgress();
                 float remainingTime = (1f - progress) * RecordingService.Instance.MaxRecordTime;
                 timerMeter.SetTime(remainingTime);
+
+                // --- Dynamic Positioning Logic ---
+                var activeShadow = RecordingService.Instance.ActiveShadowRb;
+                if (activeShadow != null && UnityEngine.Camera.main != null)
+                {
+                    Vector2 screenPoint = UnityEngine.Camera.main.WorldToScreenPoint(activeShadow.position);
+                    
+                    // RESOLUTION FIX: Scale the offset based on current screen height
+                    float scale = Screen.height / referenceHeight;
+                    _meterRectTransform.position = (Vector3)screenPoint + (Vector3)(shadowFollowOffset * scale);
+                }
+            }
+            else if (currentState == GameStateManager.WorldState.Replay)
+            {
+                // --- Time Drain Logic (Replaying) ---
+                var activeReplay = RecordingService.Instance.ActiveReplay;
+                if(activeReplay != null)
+                {
+                    // We also drain the bar during replay to keep the visual language consistent.
+                    float progress = activeReplay.ReplayProgress;
+                    float remainingTime = (1f - progress) * RecordingService.Instance.MaxRecordTime;
+                    timerMeter.SetTime(remainingTime);
+                }
             }
         }
-    }
 
-    void UpdateUI(GameStateManager.WorldState state)
-    {
-        bool isMemory = state == GameStateManager.WorldState.Memory;
-        bool isReplay = state == GameStateManager.WorldState.Replay;
-
-        if (timerMeter != null)
+        void UpdateUI(GameStateManager.WorldState state)
         {
-            if(isMemory)
+            bool isMemory = state == GameStateManager.WorldState.Memory;
+            bool isReplay = state == GameStateManager.WorldState.Replay;
+
+            if (timerMeter != null)
             {
-                timerMeter.SetTime(RecordingService.Instance.MaxRecordTime);
+                if(isMemory)
+                {
+                    timerMeter.SetTime(RecordingService.Instance.MaxRecordTime);
+                }
+                else if (isReplay)
+                {
+                    _meterRectTransform.anchoredPosition = _meterOriginalAnchoredPos; // Reset to corner
+                    timerMeter.SetTime(RecordingService.Instance.MaxRecordTime); // Start FULL to drain down
+                }
+                timerMeter.gameObject.SetActive(isMemory || isReplay);
             }
-            else if (isReplay)
+
+            if (btnText) btnText.text = isMemory ? "SUMMON ECHO" : "COMMUNE";
+        }
+
+        public void OnClickRecord()
+        {
+            if (RecordingService.Instance != null)
             {
-                _meterRectTransform.anchoredPosition = _meterOriginalAnchoredPos; // Reset to corner
-                timerMeter.SetTime(RecordingService.Instance.MaxRecordTime); // Start FULL to drain down
+                RecordingService.Instance.ToggleRecord();
             }
-            timerMeter.gameObject.SetActive(isMemory || isReplay);
         }
 
-        if (btnText) btnText.text = isMemory ? "SUMMON ECHO" : "COMMUNE";
-    }
-
-    public void OnClickRecord()
-    {
-        if (RecordingService.Instance != null)
+        public void OpenSkillPanel()
         {
-            RecordingService.Instance.ToggleRecord();
-        }
-    }
-
-    public void OpenSkillPanel()
-    {
-        if (skillSelectionPanel != null)
-        {
-            skillSelectionPanel.SetActive(!skillSelectionPanel.activeSelf);
-        }
-        else
-        {
-            Debug.LogWarning("UIManager: skillSelectionPanel is not assigned!");
-        }
-    }
-
-    public void OnClickReplay()
-    {
-        if (RecordingService.Instance != null)
-        {
-            if (RecordingService.Instance.IsRecordingShadow)
+            if (skillSelectionPanel != null)
             {
-                // If recording, stop the recording first, then play.
-                RecordingService.Instance.EndRecording();
-                RecordingService.Instance.PlayLatestRecording();
+                skillSelectionPanel.SetActive(!skillSelectionPanel.activeSelf);
             }
             else
             {
-                // If not recording, just play.
-                RecordingService.Instance.PlayLatestRecording();
+                Debug.LogWarning("UIManager: skillSelectionPanel is not assigned!");
+            }
+        }
+
+        public void OnClickReplay()
+        {
+            if (RecordingService.Instance != null)
+            {
+                if (RecordingService.Instance.IsRecordingShadow)
+                {
+                    // If recording, stop the recording first, then play.
+                    RecordingService.Instance.EndRecording();
+                    RecordingService.Instance.PlayLatestRecording();
+                }
+                else
+                {
+                    // If not recording, just play.
+                    RecordingService.Instance.PlayLatestRecording();
+                }
             }
         }
     }

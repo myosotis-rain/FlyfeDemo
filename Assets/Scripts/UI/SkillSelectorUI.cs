@@ -1,77 +1,34 @@
 using System;
 using UnityEngine;
-using TMPro; // Added for TextMesh Pro support
+using TMPro;
+using Flyfe.Skills;
+using Flyfe.Player;
 
-public class SkillSelectorUI : MonoBehaviour
+namespace Flyfe.UI
 {
-    [SerializeField] private TMP_Text activeSkillText; // Changed to TMP_Text
-    [SerializeField] private GameObject selectionPanel;
-
-    private SkillManager _sm;
-
-    void OnEnable() 
+    public class SkillSelectorUI : MonoBehaviour
     {
-        if (_sm == null) FindSkillManager();
-        if (_sm != null) _sm.OnSkillChanged += RefreshUI;
-    }
+        [SerializeField] private TMP_Text activeSkillText; 
+        [SerializeField] private GameObject selectionPanel;
 
-    void OnDisable() 
-    {
-        if (_sm != null) _sm.OnSkillChanged -= RefreshUI;
-    }
+        private SkillManager _playerSkillManager;
 
-    void Start()
-    {
-        if (selectionPanel != null) selectionPanel.SetActive(false);
-        if (_sm == null) FindSkillManager();
-        if (_sm != null && _sm.ActiveSkill != null) RefreshUI(_sm.ActiveSkill);
-    }
-
-    private void FindSkillManager()
-    {
-        GameObject player = GameObject.FindGameObjectWithTag(Tags.Player);
-        if (player != null) _sm = player.GetComponent<SkillManager>();
-    }
-
-    private void RefreshUI(ISkill newSkill)
-    {
-        if (activeSkillText != null && newSkill != null)
+        void Start()
         {
-            // Changes "HoverSkill" to "Hover"
-            activeSkillText.text = newSkill.GetType().Name.Replace("Skill", "");
-        }
-    }
-
-    public void TogglePanel()
-    {
-        if (selectionPanel != null) selectionPanel.SetActive(!selectionPanel.activeSelf);
-    }
-
-    // Button Link Methods
-    public void SelectHover() => SelectSkill(typeof(HoverSkill));
-    public void SelectNone() => SelectSkill(typeof(NoSkill));
-
-    private void SelectSkill(Type type)
-    {
-        GameObject player = GameObject.FindGameObjectWithTag(Tags.Player);
-        if (player != null)
-        {
-            SkillManager sm = player.GetComponent<SkillManager>();
-            if (sm != null)
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
             {
-                sm.SetActiveSkill(type);
-                Debug.Log("UI: Successfully switched player skill to: " + type.Name);
+                _playerSkillManager = player.GetComponent<SkillManager>();
             }
-            else
+            if (selectionPanel != null) selectionPanel.SetActive(false);
+        }
+
+        void Update()
+        {
+            if (_playerSkillManager != null && activeSkillText != null)
             {
-                Debug.LogError("UI: Player found but it has no SkillManager component!");
+                activeSkillText.text = _playerSkillManager.ActiveSkill?.GetType().Name ?? "None";
             }
         }
-        else
-        {
-            Debug.LogError("UI: Could not find any GameObject with tag 'Player'!");
-        }
-
-        if (selectionPanel != null) selectionPanel.SetActive(false);
     }
 }

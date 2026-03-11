@@ -1,45 +1,45 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using Flyfe.Recording;
 
-public class LevelGoal : MonoBehaviour
+namespace Flyfe.Gameplay
 {
-    [SerializeField] private float waitTime = 3.0f;
-    [SerializeField] private Color themeColor = new Color(0f, 1f, 1f); // Cyan
-    [SerializeField] private GameObject victoryUiPrefab;
-
-    private bool _hasWon = false;
-
-    private void OnTriggerEnter2D(Collider2D other)
+    public class LevelGoal : MonoBehaviour
     {
-        if (!_hasWon && other.CompareTag(Tags.Player))
+        [SerializeField] private string nextSceneName;
+        [SerializeField] private float transitionDelay = 1.5f;
+
+        private bool _isLevelComplete = false;
+
+        void OnTriggerEnter2D(Collider2D other)
         {
-            _hasWon = true;
-            if (victoryUiPrefab != null)
+            if (_isLevelComplete) return;
+
+            if (other.CompareTag("Player"))
             {
-                Instantiate(victoryUiPrefab);
+                CompleteLevel();
             }
-            StartCelebration();
         }
-    }
 
-    private void StartCelebration()
-    {
-        if (RecordingService.Instance != null)
+        private void CompleteLevel()
         {
-            RecordingService.Instance.ForceResetToPresent();
-        }
-        
-        Time.timeScale = 0.3f;
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player && player.TryGetComponent<Rigidbody2D>(out var rb)) rb.simulated = false;
-        Invoke(nameof(LoadNextLevel), waitTime * Time.timeScale);
-    }
+            _isLevelComplete = true;
+            Debug.Log("Level Complete!");
 
-    private void LoadNextLevel()
-    {
-        Time.timeScale = 1.0f;
-        int next = SceneManager.GetActiveScene().buildIndex + 1;
-        SceneManager.LoadScene(next < SceneManager.sceneCountInBuildSettings ? next : 0);
+            if (RecordingService.Instance != null)
+            {
+                RecordingService.Instance.ForceResetToPresent();
+            }
+
+            if (!string.IsNullOrEmpty(nextSceneName))
+            {
+                Invoke(nameof(LoadNextScene), transitionDelay);
+            }
+        }
+
+        private void LoadNextScene()
+        {
+            SceneManager.LoadScene(nextSceneName);
+        }
     }
 }

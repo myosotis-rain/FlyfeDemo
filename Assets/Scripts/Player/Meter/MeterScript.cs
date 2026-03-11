@@ -1,25 +1,35 @@
-﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class MeterScript : MonoBehaviour
+namespace Flyfe.UI
 {
-    public Slider slider;
-    public Gradient gradient;
-    public Image fill;
-
-    public void SetMaxTime(float time)
+    public class MeterScript : MonoBehaviour
     {
-        slider.maxValue = time;
-        slider.value = time;
+        public Slider slider;
+        public Gradient gradient;
+        public Image fill;
 
-        fill.color = gradient.Evaluate (1f) ;
-    }
+        public void SetMaxTime(float time)
+        {
+            if (slider == null) return;
+            slider.maxValue = time;
+            slider.value = time;
 
-    public void SetTime(float time)
-    {
-        slider.value = time;
-        fill.color = gradient.Evaluate(slider.normalizedValue);
+            if (fill != null) fill.color = gradient.Evaluate(1f);
+        }
+
+        public void SetTime(float time)
+        {
+            if (slider == null) return;
+            slider.value = time;
+            if (fill != null) fill.color = gradient.Evaluate(slider.normalizedValue);
+        }
+
+        public void SetValue(float normalizedValue)
+        {
+            if (slider == null) return;
+            slider.value = normalizedValue * slider.maxValue;
+            if (fill != null) fill.color = gradient.Evaluate(normalizedValue);
+        }
     }
 }

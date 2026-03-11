@@ -55,6 +55,8 @@ MonoBehaviour:
   moveSpeed: 8
   climbSpeed: 5
   jumpForce: 12
+  slopeRotateSpeed: 8
+  raycastDistance: 0.3
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -236,6 +238,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 944dd85c6afe94149aaa3e550bbd4043, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillManager
+  startingSkillName: HoverSkill
+  skillPrefabs: []
 --- !u!1 &4746082280993316616
 GameObject:
   m_ObjectHideFlags: 0

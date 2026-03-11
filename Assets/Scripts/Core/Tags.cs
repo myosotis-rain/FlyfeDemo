@@ -1,6 +1,8 @@
-// In a new file, perhaps Core/Tags.cs
-public static class Tags
+namespace Flyfe.Core
 {
-    public const string Player = "Player";
-    public const string Shadow = "Shadow";
+    public static class Tags
+    {
+        public const string Player = "Player";
+        public const string Shadow = "Shadow";
+    }
 }

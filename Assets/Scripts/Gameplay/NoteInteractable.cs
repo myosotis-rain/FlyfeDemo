@@ -1,20 +1,19 @@
 using UnityEngine;
 
-public class NoteInteractable : MonoBehaviour, IInteractable
+namespace Flyfe.Gameplay
 {
-    [SerializeField, TextArea] private string noteContent = "Hello World!";
-    
-    public void Interact(GameObject user)
+    public class NoteInteractable : MonoBehaviour, IInteractable
     {
-        // For now, we just log it. In a real game, this might open a UI window.
-        Debug.Log("Reading Note: " + noteContent);
+        [SerializeField, TextArea] private string noteContent = "Hello World!";
         
-        // Show in UI if UIManager has a way to show notes
-        // Note: You could expand UIManager to handle this.
-    }
+        public void Interact(GameObject user)
+        {
+            Debug.Log("Reading Note: " + noteContent);
+        }
 
-    public string GetInteractPrompt()
-    {
-        return "Read Note";
+        public string GetInteractPrompt()
+        {
+            return "Read Note";
+        }
     }
 }

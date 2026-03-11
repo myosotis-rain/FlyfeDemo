@@ -1,72 +1,81 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Flyfe.UI;
+using Flyfe.Dialogue;
+using Flyfe.Recording;
+using Flyfe.Camera;
 
-public class PlayerRespawn : MonoBehaviour
+namespace Flyfe.Player
 {
-    [SerializeField] private float fallThreshold = -50f;
-    [SerializeField] private Transform respawnPoint;
-
-    private Rigidbody2D rb;
-
-    void Awake()
+    public class PlayerRespawn : MonoBehaviour
     {
-        rb = GetComponent<Rigidbody2D>();
-    }
+        [SerializeField] private float fallThreshold = -50f;
+        [SerializeField] private Transform respawnPoint;
 
-    private float _safetyBufferTimer = 0f;
+        private Rigidbody2D _rb;
+        private float _startTime;
+        private float _lastRespawnTime;
 
-    void Update()
-    {
-        // Don't respawn if a dialogue or cutscene is active
-        bool isBusy = (DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) || CutsceneController.AnyCutsceneActive;
-
-        if (isBusy)
+        void Awake()
         {
-            _safetyBufferTimer = 0.5f; // Keep resetting buffer while busy
-            return;
+            _rb = GetComponent<Rigidbody2D>();
+            _startTime = Time.time;
         }
 
-        // Subtract from buffer
-        if (_safetyBufferTimer > 0)
+        void Update()
         {
-            _safetyBufferTimer -= Time.deltaTime;
-            return;
-        }
+            // Give systems a moment to settle, and add a small cooldown after respawn
+            if (Time.time - _startTime < 0.5f || Time.time - _lastRespawnTime < 0.5f) return;
 
-        // Only check for fall death if we are NOT in memory mode
-        if (transform.position.y < fallThreshold)
-            Respawn();
-    }
+            // Pause during dialogue/cutscenes
+            if ((DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) || CutsceneController.AnyCutsceneActive) return;
 
-    public void Respawn()
-    {
-        Debug.Log("Respawn triggered! Player Y: " + transform.position.y + " | Fall Threshold: " + fallThreshold);
-        
-        // 1. Force the World State back to Present
-        if (RecordingService.Instance != null)
-        {
-            RecordingService.Instance.ForceResetToPresent();
-        }
-
-        // 2. Handle the physical relocation
-        if (respawnPoint != null)
-        {
-            transform.position = respawnPoint.position;
-
-            // Resync all parallax layers to prevent massive jumps when camera snaps
-            ParallaxLayer.ResyncAll();
-
-            // Safety check for Rigidbody before resetting velocity
-            if (rb != null)
+            // Trigger respawn if below threshold
+            if (transform.position.y < fallThreshold)
             {
-                rb.linearVelocity = Vector2.zero;
-                rb.angularVelocity = 0f; // Stops the player from spinning if they were
+                Respawn();
             }
         }
-        else
+
+        public void SetRespawnPoint(Transform newPoint) => respawnPoint = newPoint;
+
+        public void Respawn()
         {
-            // Fallback: Reload scene if no checkpoint is set
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            _lastRespawnTime = Time.time;
+
+            if (respawnPoint == null)
+            {
+                respawnPoint = Checkpoint.GetNearestVisitedTransform(transform.position);
+            }
+
+            if (respawnPoint != null)
+            {
+                // 1. Clear ALL momentum
+                if (_rb != null)
+                {
+                    _rb.linearVelocity = Vector2.zero;
+                    _rb.angularVelocity = 0f;
+                    _rb.totalForce = Vector2.zero;
+                    _rb.totalTorque = 0f;
+                }
+
+                // 2. Perform the teleport
+                transform.SetPositionAndRotation(respawnPoint.position, respawnPoint.rotation);
+
+                // 3. Resync world elements (this triggers the camera snap and background stabilization)
+                ParallaxLayer.ResyncAll();
+
+                // 4. Reset Recording system
+                if (RecordingService.Instance != null)
+                {
+                    RecordingService.Instance.ForceResetToPresent();
+                }
+            }
+            else
+            {
+                // Fallback: Reload Scene
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
         }
     }
 }

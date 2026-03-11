@@ -1,53 +1,63 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public class SkillManager : MonoBehaviour
+namespace Flyfe.Skills
 {
-    private List<ISkill> _skills;
-    public ISkill ActiveSkill { get; private set; }
-    public Type ActiveSkillType => ActiveSkill?.GetType();
-
-    // Event for UI to listen to
-    public event Action<ISkill> OnSkillChanged;
-
-    void Awake()
+    public class SkillManager : MonoBehaviour
     {
-        _skills = GetComponents<ISkill>().ToList();
-        if (_skills.Count > 0) SetActiveSkill(0); 
-    }
+        [Header("Settings")]
+        [SerializeField] private string startingSkillName = "NoSkill";
 
-    public void SetActiveSkill(int index)
-    {
-        if (_skills == null || index < 0 || index >= _skills.Count) return;
+        [Header("Available Skills")]
+        [SerializeField] private List<GameObject> skillPrefabs;
+        
+        private ISkill _activeSkill;
+        private Type _activeSkillType;
 
-        for (int i = 0; i < _skills.Count; i++)
+        public ISkill ActiveSkill => _activeSkill;
+        public Type ActiveSkillType => _activeSkillType;
+
+        private void Awake()
         {
-            var mono = _skills[i] as MonoBehaviour;
-            if (mono != null) mono.enabled = (i == index);
+            // Initialize with the starting skill
+            if (_activeSkill == null)
+            {
+                Type t = Type.GetType("Flyfe.Skills." + startingSkillName);
+                if (t == null) t = typeof(NoSkill);
+                
+                SetActiveSkill(t);
+            }
         }
 
-        ActiveSkill = _skills[index];
-        OnSkillChanged?.Invoke(ActiveSkill); // Trigger the update
-    }
-    
-    public void SetActiveSkill(Type type)
-    {
-        if (_skills == null) _skills = GetComponents<ISkill>().ToList();
-        if (_skills == null) return;
+        public void SetActiveSkill(Type skillType)
+        {
+            if (skillType == null) return;
 
-        int index = _skills.FindIndex(s => s.GetType() == type);
-        if (index != -1) SetActiveSkill(index);
-    }
+            // Remove existing skill component
+            if (_activeSkill != null && _activeSkill is MonoBehaviour mono)
+            {
+                Destroy(mono);
+            }
 
-    public void CycleSkills(float direction)
-    {
-        if (_skills.Count <= 1) return;
-        int currentIndex = _skills.IndexOf(ActiveSkill);
-        int nextIndex = (direction > 0) 
-            ? (currentIndex + 1) % _skills.Count 
-            : (currentIndex - 1 + _skills.Count) % _skills.Count;
-        SetActiveSkill(nextIndex);
+            // Add new skill component
+            _activeSkill = gameObject.AddComponent(skillType) as ISkill;
+            _activeSkillType = skillType;
+            
+            Debug.Log($"[{name}] Skill swapped to: {skillType.Name}");
+        }
+
+        public void CycleSkills()
+        {
+            // Simple cycle between NoSkill and HoverSkill for now
+            if (_activeSkillType == typeof(NoSkill))
+            {
+                SetActiveSkill(typeof(HoverSkill));
+            }
+            else
+            {
+                SetActiveSkill(typeof(NoSkill));
+            }
+        }
     }
 }

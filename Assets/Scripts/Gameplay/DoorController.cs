@@ -1,43 +1,38 @@
 using UnityEngine;
 
-public class DoorController : MonoBehaviour, IResettable
+namespace Flyfe.Gameplay
 {
-    [SerializeField] private Vector3 positionOffsetWhenOpen = new Vector3(0, 3, 0); // Direction and distance to move
-    [SerializeField] private float slideSpeed = 5f;
-    
-    private Vector3 closedPos;
-    private Vector3 targetPos;
-
-    void Awake()
+    public class DoorController : MonoBehaviour, IResettable
     {
-        closedPos = transform.position;
-        targetPos = closedPos;
-    }
+        [SerializeField] private Vector3 positionOffsetWhenOpen = new Vector3(0, 3, 0); 
+        [SerializeField] private float slideSpeed = 5f;
+        
+        private Vector3 closedPos;
+        private Vector3 targetPos;
 
-    public void ResetState()
-    {
-        transform.position = closedPos;
-        targetPos = closedPos;
-    }
+        void Awake()
+        {
+            closedPos = transform.position;
+            targetPos = closedPos;
+        }
 
-    void Update()
-    {
-        // Smoothly slides the door/bridge to the target position
-        transform.position = Vector3.MoveTowards(transform.position, targetPos, slideSpeed * Time.deltaTime);
-    }
+        public void ResetState()
+        {
+            transform.position = closedPos;
+            targetPos = closedPos;
+        }
 
-    public void SetOpen(bool isOpen)
-    {
-        targetPos = isOpen ? closedPos + positionOffsetWhenOpen : closedPos;
-    }
+        void Update()
+        {
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, slideSpeed * Time.deltaTime);
+        }
 
-    public void Open()
-    {
-        SetOpen(true);
-    }
+        public void SetOpen(bool isOpen)
+        {
+            targetPos = isOpen ? closedPos + positionOffsetWhenOpen : closedPos;
+        }
 
-    public void Close()
-    {
-        SetOpen(false);
+        public void Open() => SetOpen(true);
+        public void Close() => SetOpen(false);
     }
 }
