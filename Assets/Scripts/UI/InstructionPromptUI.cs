@@ -22,6 +22,7 @@ namespace Flyfe.UI
         [Header("Detection Settings")]
         [SerializeField] private float detectionRadius = 3.5f; 
         [SerializeField] private bool alwaysShowOnRange = false; 
+        [SerializeField] private bool onlyShowInMemoryWorld = false;
         [SerializeField] private bool showDebugLogs = false;
         
         [Header("Professional Effects")]
@@ -77,6 +78,20 @@ namespace Flyfe.UI
             {
                 if (visualContainer.activeSelf) HidePrompt();
                 return;
+            }
+
+            // World State Check: Hide if we are restricted to Memory world but currently in Present/Replay
+            if (onlyShowInMemoryWorld && GameStateManager.Instance != null)
+            {
+                if (GameStateManager.Instance.CurrentState != GameStateManager.WorldState.Memory)
+                {
+                    if (visualContainer.activeSelf || _currentAlpha > 0) 
+                    {
+                        _shouldBeVisible = false;
+                        // Fade out normally below
+                    }
+                    else return; 
+                }
             }
 
             if (_playerObj == null) FindPlayer();

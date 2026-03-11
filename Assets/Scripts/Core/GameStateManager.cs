@@ -73,6 +73,9 @@ namespace Flyfe.Core
             // Notify Camera System
             UpdateCameraBoundaries(state);
             
+            // Critical: Resync backgrounds after the new folders are active
+            ParallaxLayer.ResyncAll();
+            
             OnWorldChanged?.Invoke(CurrentState);
         }
 

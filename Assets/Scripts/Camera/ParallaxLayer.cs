@@ -4,9 +4,9 @@ using Flyfe.Player;
 namespace Flyfe.Camera
 {
     /// <summary>
-    /// Professional Parallax Layer.
-    /// Logic: Each layer captures the camera position when it first becomes active.
-    /// This ensures perfect alignment regardless of when the layer is enabled (e.g. world swapping).
+    /// Professional Parallax Layer (Local-Space Anchored).
+    /// Logic: Uses the authored localPosition as the absolute 'Zero Point'.
+    /// When synced, it captures the current camera position and calculates all future movement relative to that moment.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public class ParallaxLayer : MonoBehaviour
@@ -17,8 +17,8 @@ namespace Flyfe.Camera
         [SerializeField] private bool lockVertical = false;
 
         private Transform _cameraTransform;
-        private Vector3 _initialWorldPos;
-        private Vector3 _initialCameraPos;
+        private Vector3 _anchorCameraPos;
+        private Vector3 _authoredLocalPos;
         private bool _isInitialized = false;
 
         private void Awake()
@@ -29,20 +29,26 @@ namespace Flyfe.Camera
                 DestroyImmediate(this);
                 return;
             }
+
+            // Capture the authored position immediately as our "Absolute Zero"
+            _authoredLocalPos = transform.localPosition;
         }
 
         private void OnEnable()
         {
-            Initialize();
+            InitializeAnchor();
         }
 
-        public void Initialize()
+        public void InitializeAnchor()
         {
             if (UnityEngine.Camera.main == null) return;
             
             _cameraTransform = UnityEngine.Camera.main.transform;
-            _initialWorldPos = transform.position;
-            _initialCameraPos = _cameraTransform.position;
+            _anchorCameraPos = _cameraTransform.position;
+            
+            // Force reset to the authored position so we start fresh
+            transform.localPosition = _authoredLocalPos;
+            
             _isInitialized = true;
         }
 
@@ -50,18 +56,18 @@ namespace Flyfe.Camera
         {
             if (!_isInitialized || _cameraTransform == null) return;
 
-            // Calculate how much the camera has moved since this layer was initialized
-            Vector3 cameraDelta = _cameraTransform.position - _initialCameraPos;
+            // Calculate how much the camera has moved since the last synchronization
+            Vector3 cameraDelta = _cameraTransform.position - _anchorCameraPos;
 
             float offsetX = cameraDelta.x * (1 - parallaxFactor.x);
             float offsetY = lockVertical ? 0 : cameraDelta.y * (1 - parallaxFactor.y);
 
-            // Apply movement relative to the position we had when we woke up
-            transform.position = _initialWorldPos + new Vector3(offsetX, offsetY, 0);
+            // Apply movement in LOCAL space relative to the authored Zero Point
+            transform.localPosition = _authoredLocalPos + new Vector3(offsetX, offsetY, 0);
         }
 
         /// <summary>
-        /// Called during teleports (respawns) to prevent the background from drifting.
+        /// Called during teleports or world swaps to perfectly align all backgrounds.
         /// </summary>
         public static void ResyncAll()
         {
@@ -73,11 +79,11 @@ namespace Flyfe.Camera
             // 1. SNAP the camera first so the layers capture the correct destination
             CameraManager.Instance.InitializeCamera(player.transform);
 
-            // 2. Refresh all layers
+            // 2. Refresh all layers (active and inactive)
             ParallaxLayer[] layers = FindObjectsByType<ParallaxLayer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var layer in layers)
             {
-                layer.Initialize();
+                layer.InitializeAnchor();
             }
         }
     }

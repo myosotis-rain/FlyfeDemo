@@ -2,17 +2,12 @@ using UnityEngine;
 
 namespace Flyfe.Gameplay
 {
-    /// <summary>
-    /// Optimized Vine Controller for use with Animation Events.
-    /// Provides frame-perfect collider syncing for 3-frame animations.
-    /// </summary>
     public class VineController : MonoBehaviour, IResettable
     {
         [Header("Settings")]
         [SerializeField] private bool startsGrown = false;
         
         [Header("Colliders")]
-        [Tooltip("Assign ColliderSegment1, 2, 3 here in order.")]
         [SerializeField] private Collider2D[] segments;
 
         private Animator _animator;
@@ -20,6 +15,7 @@ namespace Flyfe.Gameplay
 
         private static readonly int GrowTrigger = Animator.StringToHash("Grow");
         private static readonly int ShrinkTrigger = Animator.StringToHash("Shrink");
+        private static readonly int IsGrownBool = Animator.StringToHash("IsGrown");
 
         private void Awake()
         {
@@ -35,34 +31,35 @@ namespace Flyfe.Gameplay
         {
             _isGrown = startsGrown;
             ApplyVisualState(true);
-            
-            if (_animator != null)
-            {
-                _animator.ResetTrigger(GrowTrigger);
-                _animator.ResetTrigger(ShrinkTrigger);
-            }
         }
 
         private void ApplyVisualState(bool immediate)
         {
-            if (_isGrown)
+            if (_animator != null)
             {
-                if (_animator != null) 
+                // Use a Boolean parameter if it exists for more stability
+                if (HasParameter("IsGrown")) _animator.SetBool(IsGrownBool, _isGrown);
+                
+                if (_isGrown)
                 {
-                    if (immediate) _animator.Play("GrownIdle", 0, 1f);
+                    if (immediate) _animator.Play("GrownIdle", 0, 1f); // If this fails, it logs but doesn't crash
                     else _animator.SetTrigger(GrowTrigger);
+                    SetFlowerLength(segments.Length);
                 }
-                SetFlowerLength(segments.Length);
-            }
-            else
-            {
-                if (_animator != null) 
+                else
                 {
                     if (immediate) _animator.Play("Idle", 0, 0f);
                     else _animator.SetTrigger(ShrinkTrigger);
+                    SetFlowerLength(1); 
                 }
-                SetFlowerLength(1); 
             }
+        }
+
+        private bool HasParameter(string paramName)
+        {
+            if (_animator == null) return false;
+            foreach (var param in _animator.parameters) if (param.name == paramName) return true;
+            return false;
         }
 
         public void SetFlowerLength(int segmentCount)
@@ -78,41 +75,18 @@ namespace Flyfe.Gameplay
         {
             if (_isGrown) return;
             _isGrown = true;
-            if (_animator != null)
-            {
-                _animator.SetTrigger(GrowTrigger);
-                _animator.ResetTrigger(ShrinkTrigger);
-            }
+            if (_animator != null) _animator.SetTrigger(GrowTrigger);
         }
 
         public void Shrink()
         {
             if (!_isGrown) return;
             _isGrown = false;
-            if (_animator != null)
-            {
-                _animator.SetTrigger(ShrinkTrigger);
-                _animator.ResetTrigger(GrowTrigger);
-            }
+            if (_animator != null) _animator.SetTrigger(ShrinkTrigger);
         }
 
-        /// <summary>
-        /// Explicit method for linking to RotarySwitch UnityEvents
-        /// </summary>
-        public void OnRotarySwitchChanged(bool isOn)
-        {
-            if (isOn) Grow();
-            else Shrink();
-        }
-
-        /// <summary>
-        /// Explicit method for linking to MemorySwitch UnityEvents
-        /// </summary>
-        public void OnMemorySwitchChanged(bool isOn)
-        {
-            if (isOn) Grow();
-            else Shrink();
-        }
+        public void OnRotarySwitchChanged(bool isOn) { if (isOn) Grow(); else Shrink(); }
+        public void OnMemorySwitchChanged(bool isOn) { if (isOn) Grow(); else Shrink(); }
 
         public bool IsGrown => _isGrown;
     }

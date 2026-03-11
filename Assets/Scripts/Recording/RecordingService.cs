@@ -92,8 +92,6 @@ namespace Flyfe.Recording
 
         public void StartRecording()
         {
-            if (!_playerRb) return;
-
             // Determine Shadow Prefab
             GameObject prefabToSpawn = defaultShadowPrefab;
             var psm = _playerRb.GetComponent<SkillManager>();
@@ -110,7 +108,6 @@ namespace Flyfe.Recording
                 }
             }
             _recordedPrefab = prefabToSpawn;
-
             CleanupShadows(false); 
 
             _isRecording = true;
