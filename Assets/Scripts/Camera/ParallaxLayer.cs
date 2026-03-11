@@ -3,11 +3,6 @@ using Flyfe.Player;
 
 namespace Flyfe.Camera
 {
-    /// <summary>
-    /// Professional Parallax Layer (Local-Space Anchored).
-    /// Logic: Uses the authored localPosition as the absolute 'Zero Point'.
-    /// When synced, it captures the current camera position and calculates all future movement relative to that moment.
-    /// </summary>
     [DefaultExecutionOrder(100)]
     public class ParallaxLayer : MonoBehaviour
     {
@@ -17,57 +12,45 @@ namespace Flyfe.Camera
         [SerializeField] private bool lockVertical = false;
 
         private Transform _cameraTransform;
-        private Vector3 _anchorCameraPos;
-        private Vector3 _authoredLocalPos;
+        private Vector3 _authoredWorldPos;
         private bool _isInitialized = false;
 
         private void Awake()
         {
-            // Hierarchy Safety Check
             if (gameObject.CompareTag("Player") || name.Contains("Actors") || GetComponentInParent<PlayerController>(true) != null)
             {
                 DestroyImmediate(this);
                 return;
             }
 
-            // Capture the authored position immediately as our "Absolute Zero"
-            _authoredLocalPos = transform.localPosition;
+            // Capture where this object belongs in the world globally
+            _authoredWorldPos = transform.position;
         }
 
-        private void OnEnable()
+        private void Start()
         {
-            InitializeAnchor();
-        }
-
-        public void InitializeAnchor()
-        {
-            if (UnityEngine.Camera.main == null) return;
-            
-            _cameraTransform = UnityEngine.Camera.main.transform;
-            _anchorCameraPos = _cameraTransform.position;
-            
-            // Force reset to the authored position so we start fresh
-            transform.localPosition = _authoredLocalPos;
-            
+            if (UnityEngine.Camera.main != null) _cameraTransform = UnityEngine.Camera.main.transform;
             _isInitialized = true;
         }
 
         void LateUpdate()
         {
-            if (!_isInitialized || _cameraTransform == null) return;
+            if (!_isInitialized || _cameraTransform == null || CameraManager.Instance == null || !CameraManager.Instance.ParallaxAnchor.HasValue)
+                return;
 
-            // Calculate how much the camera has moved since the last synchronization
-            Vector3 cameraDelta = _cameraTransform.position - _anchorCameraPos;
+            // GLOBAL CONSISTENCY: Always calculate displacement from the very start of the level
+            Vector3 anchor = CameraManager.Instance.ParallaxAnchor.Value;
+            Vector3 cameraDisplacement = _cameraTransform.position - anchor;
 
-            float offsetX = cameraDelta.x * (1 - parallaxFactor.x);
-            float offsetY = lockVertical ? 0 : cameraDelta.y * (1 - parallaxFactor.y);
+            float offsetX = cameraDisplacement.x * (1 - parallaxFactor.x);
+            float offsetY = lockVertical ? 0 : cameraDisplacement.y * (1 - parallaxFactor.y);
 
-            // Apply movement in LOCAL space relative to the authored Zero Point
-            transform.localPosition = _authoredLocalPos + new Vector3(offsetX, offsetY, 0);
+            // Move relative to the world position you gave it in the editor
+            transform.position = _authoredWorldPos + new Vector3(offsetX, offsetY, 0);
         }
 
         /// <summary>
-        /// Called during teleports or world swaps to perfectly align all backgrounds.
+        /// Simple camera snap for respawns.
         /// </summary>
         public static void ResyncAll()
         {
@@ -76,15 +59,8 @@ namespace Flyfe.Camera
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player == null) return;
 
-            // 1. SNAP the camera first so the layers capture the correct destination
+            // Just snap the camera. The backgrounds will follow naturally in LateUpdate.
             CameraManager.Instance.InitializeCamera(player.transform);
-
-            // 2. Refresh all layers (active and inactive)
-            ParallaxLayer[] layers = FindObjectsByType<ParallaxLayer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            foreach (var layer in layers)
-            {
-                layer.InitializeAnchor();
-            }
         }
     }
 }

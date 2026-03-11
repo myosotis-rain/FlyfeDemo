@@ -4,10 +4,6 @@ using System.Collections;
 
 namespace Flyfe.Camera
 {
-    /// <summary>
-    /// Centralized manager for camera operations.
-    /// Simplified: Parallax layers now handle their own initialization, so we just focus on tracking.
-    /// </summary>
     public class CameraManager : MonoBehaviour
     {
         public static CameraManager Instance { get; private set; }
@@ -17,6 +13,9 @@ namespace Flyfe.Camera
         [SerializeField] private CinemachineConfiner2D confiner;
 
         private Transform _playerTransform;
+        private Vector3? _parallaxAnchor;
+
+        public Vector3? ParallaxAnchor => _parallaxAnchor;
 
         private void Awake()
         {
@@ -27,6 +26,18 @@ namespace Flyfe.Camera
             if (confiner == null) confiner = FindFirstObjectByType<CinemachineConfiner2D>();
         }
 
+        private IEnumerator Start()
+        {
+            // Wait for Cinemachine to settle
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
+
+            _parallaxAnchor = UnityEngine.Camera.main.transform.position;
+            
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null) _playerTransform = player.transform;
+        }
+
         public void InitializeCamera(Transform target)
         {
             if (target == null || virtualCamera == null) return;
@@ -34,17 +45,18 @@ namespace Flyfe.Camera
             _playerTransform = target;
             virtualCamera.Follow = target;
 
-            // Instant Teleport
             Vector3 targetPosition = new Vector3(target.position.x, target.position.y, virtualCamera.transform.position.z);
             if (confiner != null) confiner.InvalidateBoundingShapeCache();
 
             virtualCamera.transform.position = targetPosition;
+            
+            // We do NOT update the parallax anchor here! 
+            // It must remain at the start of the level for consistent world-swapping.
         }
 
         public void SetFollowTarget(Transform target, bool snap = true)
         {
             if (virtualCamera == null || target == null) return;
-            
             virtualCamera.Follow = target;
             if (snap) InitializeCamera(target);
         }
