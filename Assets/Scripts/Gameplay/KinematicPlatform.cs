@@ -6,10 +6,11 @@ using Flyfe.Core;
 namespace Flyfe.Gameplay
 {
     [RequireComponent(typeof(Rigidbody2D))]
-    public class KinematicPlatform : MonoBehaviour
+    public class KinematicPlatform : MonoBehaviour, IResettable
     {
         [SerializeField] private Vector3 travelOffset = new Vector3(5, 0, 0); 
         [SerializeField] private float transitSpeed = 2.5f;
+        [SerializeField] private float startDelay = 0f;
 
         private Rigidbody2D _rb;
         private Vector3 _startPosition;
@@ -17,6 +18,7 @@ namespace Flyfe.Gameplay
         private float _timeOffset;
         private Vector3 _lastPosition;
         private BoxCollider2D _col;
+        private float _startTime;
 
         void Start()
         {
@@ -29,12 +31,16 @@ namespace Flyfe.Gameplay
             _startPosition = transform.position;
             _targetPosition = _startPosition + travelOffset;
             _lastPosition = transform.position;
+            _startTime = Time.time;
         }
 
         void FixedUpdate()
         {
             // Pause movement during dialogue or cutscenes
             if ((DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) || CutsceneController.AnyCutsceneActive) return;
+
+            // Wait for start delay
+            if (Time.time < _startTime + startDelay) return;
             
             float distance = travelOffset.magnitude;
             if (distance < 0.01f) return;
@@ -74,7 +80,8 @@ namespace Flyfe.Gameplay
 
         public void ResetState() 
         {
-            _timeOffset = -Time.time; 
+            _startTime = Time.time;
+            _timeOffset = -(Time.time + startDelay); 
             transform.position = _startPosition;
             _lastPosition = _startPosition;
         }

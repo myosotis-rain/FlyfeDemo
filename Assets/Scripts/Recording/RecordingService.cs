@@ -161,9 +161,22 @@ namespace Flyfe.Recording
 
         public void PlayLatestRecording()
         {
+            if (_isRecording)
+            {
+                EndRecording();
+                return;
+            }
+
+            if (_inputCooldown > 0) return;
+            _inputCooldown = 0.2f;
+
             if (_recordedFrames == null || _recordedFrames.Count < 10 || _recordedPrefab == null) return;
 
-            if (ActiveReplay != null) Destroy(ActiveReplay.gameObject);
+            if (ActiveReplay != null) 
+            {
+                Destroy(ActiveReplay.gameObject);
+                ActiveReplay = null;
+            }
 
             GameStateManager.Instance.SwapWorld(GameStateManager.WorldState.Replay);
             ResetWorldState();

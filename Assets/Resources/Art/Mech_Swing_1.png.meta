@@ -1,19 +1,10 @@
 fileFormatVersion: 2
-guid: 2a4d993ecc3384add8bf2c80abf0cd47
+guid: 4750f1374e67a4f07ad22a45378d798b
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6239113717325848415
-    second: Sotis_Walk_B_0
-  - first:
-      213: -6769177246389596325
-    second: Sotis_Walk_B_1
-  - first:
-      213: -8304624955710275622
-    second: Sotis_Walk_B_2
-  - first:
-      213: 1620175510611355964
-    second: Sotis_Walk_B_3
+      213: 2081290497222965905
+    second: Mech_Swing_1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -60,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 340
+  spritePixelsToUnits: 150
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -122,89 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Sotis_Walk_B_0
+      name: Mech_Swing_1_0
       rect:
         serializedVersion: 2
-        x: 150
-        y: 131
-        width: 519
-        height: 802
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+        x: 200
+        y: 150
+        width: 456
+        height: 1217
+      alignment: 2
+      pivot: {x: 0.5, y: 1}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f5f5972aed8c59650800000000000000
-      internalID: 6239113717325848415
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Sotis_Walk_B_1
-      rect:
-        serializedVersion: 2
-        x: 1267
-        y: 134
-        width: 438
-        height: 817
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b5f8a47b82d0f02a0800000000000000
-      internalID: -6769177246389596325
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Sotis_Walk_B_2
-      rect:
-        serializedVersion: 2
-        x: 2333
-        y: 123
-        width: 472
-        height: 812
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: adf7b024a9b00cc80800000000000000
-      internalID: -8304624955710275622
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Sotis_Walk_B_3
-      rect:
-        serializedVersion: 2
-        x: 3334
-        y: 131
-        width: 439
-        height: 818
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: c39e6c7fa050c7610800000000000000
-      internalID: 1620175510611355964
+      spriteID: 19afe591eaa32ec10800000000000000
+      internalID: 2081290497222965905
       vertices: []
       indices: 
       edges: []
@@ -213,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 3baa19412beba4c57bfc9dc777ef812f
+    spriteID: 6da1edf6a1dfb40549b48cad6f36f13c
     internalID: 0
     vertices: []
     indices: 
@@ -221,14 +146,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":7,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      Sotis_Walk_B_0: 6239113717325848415
-      Sotis_Walk_B_1: -6769177246389596325
-      Sotis_Walk_B_2: -8304624955710275622
-      Sotis_Walk_B_3: 1620175510611355964
+      Mech_Swing_1_0: 2081290497222965905
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

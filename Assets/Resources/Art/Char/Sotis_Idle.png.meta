@@ -1,19 +1,10 @@
 fileFormatVersion: 2
-guid: ec79bd84f88e04b6892a885963e2f540
+guid: 78dccf96db139437c89f5deb1013cd51
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4048509912683472446
-    second: Sotis_Walk_0
-  - first:
-      213: -2451559822130987567
-    second: Sotis_Walk_1
-  - first:
-      213: -2378484344264811997
-    second: Sotis_Walk_2
-  - first:
-      213: -2956852961034817482
-    second: Sotis_Walk_3
+      213: -2990309890484215505
+    second: fairy_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -60,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 500
+  spritePixelsToUnits: 1200
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -122,89 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Sotis_Walk_0
+      name: Sotis_Idle_0
       rect:
         serializedVersion: 2
-        x: 131
-        y: 59
-        width: 516
-        height: 874
+        x: 70
+        y: 32
+        width: 1710
+        height: 2124
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 2c99ad03fadc0d7c0800000000000000
-      internalID: -4048509912683472446
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Sotis_Walk_1
-      rect:
-        serializedVersion: 2
-        x: 1267
-        y: 75
-        width: 438
-        height: 876
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1dd3348a45f4afdd0800000000000000
-      internalID: -2451559822130987567
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Sotis_Walk_2
-      rect:
-        serializedVersion: 2
-        x: 2333
-        y: 61
-        width: 478
-        height: 875
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 32a9444371dedfed0800000000000000
-      internalID: -2378484344264811997
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Sotis_Walk_3
-      rect:
-        serializedVersion: 2
-        x: 3334
-        y: 75
-        width: 444
-        height: 874
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 6303574e5e527f6d0800000000000000
-      internalID: -2956852961034817482
+      spriteID: cf3481740729d4c2db539cf41a7100a6
+      internalID: -741735076
       vertices: []
       indices: 
       edges: []
@@ -213,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 2a2a136e6e1e64afabc4aec16f2f2958
+    spriteID: 959375b13c87d40e9b2707e531ce2b3c
     internalID: 0
     vertices: []
     indices: 
@@ -225,10 +150,7 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":7,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Sotis_Walk_0: -4048509912683472446
-      Sotis_Walk_1: -2451559822130987567
-      Sotis_Walk_2: -2378484344264811997
-      Sotis_Walk_3: -2956852961034817482
+      Sotis_Idle_0: -741735076
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

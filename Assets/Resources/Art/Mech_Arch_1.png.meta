@@ -1,10 +1,13 @@
 fileFormatVersion: 2
-guid: 78dccf96db139437c89f5deb1013cd51
+guid: e17962c3381444e1893c0db0bacd9d77
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -2990309890484215505
-    second: fairy_0
+      213: -2182441545775896720
+    second: Mech_Arch_1_0
+  - first:
+      213: -2781561933430749882
+    second: Mech_Arch_1_1
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +54,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 1000
+  spritePixelsToUnits: 150
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,23 +116,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Sotis_Idle_0
+      name: Mech_Arch_1_0
       rect:
         serializedVersion: 2
-        x: 70
-        y: 32
-        width: 1710
-        height: 2124
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+        x: 191
+        y: 33
+        width: 336
+        height: 678
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: cf3481740729d4c2db539cf41a7100a6
-      internalID: -741735076
+      spriteID: 07729f82af866b1e0800000000000000
+      internalID: -2182441545775896720
       vertices: []
       indices: 
       edges: []
@@ -138,7 +141,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 959375b13c87d40e9b2707e531ce2b3c
+    spriteID: 5d61a7471451749388a9cc41559aedd5
     internalID: 0
     vertices: []
     indices: 
@@ -146,11 +149,10 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries:
-      - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":7,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+      entries: []
     nameFileIdTable:
-      Sotis_Idle_0: -741735076
+      Mech_Arch_1_0: -2182441545775896720
+      Mech_Arch_1_1: -2781561933430749882
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

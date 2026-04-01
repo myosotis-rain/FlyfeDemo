@@ -27,6 +27,31 @@ namespace Flyfe.Gameplay
             ResetState();
         }
 
+        private void Update()
+        {
+            if (_animator == null || segments == null || segments.Length == 0) return;
+
+            AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+
+            // Sync collider segments to animation progress
+            if (stateInfo.IsName("Grow"))
+            {
+                int activeIndex = Mathf.Clamp(Mathf.FloorToInt(stateInfo.normalizedTime * segments.Length), 0, segments.Length - 1);
+                SetFlowerLength(activeIndex);
+            }
+            else if (stateInfo.IsName("Shrink"))
+            {
+                int activeIndex = Mathf.Clamp(Mathf.FloorToInt((1f - stateInfo.normalizedTime) * segments.Length), 0, segments.Length - 1);
+                SetFlowerLength(activeIndex);
+            }
+            else
+            {
+                // Rely on the logical state if not currently playing a transition animation.
+                // This fixes the bug where StartsGrown was broken by animator lag on frame 1.
+                SetFlowerLength(_isGrown ? segments.Length - 1 : -1);
+            }
+        }
+
         public void ResetState()
         {
             _isGrown = startsGrown;
@@ -37,20 +62,31 @@ namespace Flyfe.Gameplay
         {
             if (_animator != null)
             {
-                // Use a Boolean parameter if it exists for more stability
                 if (HasParameter("IsGrown")) _animator.SetBool(IsGrownBool, _isGrown);
                 
                 if (_isGrown)
                 {
-                    if (immediate) _animator.Play("GrownIdle", 0, 1f); // If this fails, it logs but doesn't crash
-                    else _animator.SetTrigger(GrowTrigger);
-                    SetFlowerLength(segments.Length);
+                    if (immediate) 
+                    {
+                        _animator.Play("GrownIdle", 0, 1f);
+                        SetFlowerLength(segments.Length - 1);
+                    }
+                    else 
+                    {
+                        _animator.SetTrigger(GrowTrigger);
+                    }
                 }
                 else
                 {
-                    if (immediate) _animator.Play("Idle", 0, 0f);
-                    else _animator.SetTrigger(ShrinkTrigger);
-                    SetFlowerLength(1); 
+                    if (immediate) 
+                    {
+                        _animator.Play("Idle", 0, 0f);
+                        SetFlowerLength(-1); 
+                    }
+                    else 
+                    {
+                        _animator.SetTrigger(ShrinkTrigger);
+                    }
                 }
             }
         }
@@ -62,12 +98,17 @@ namespace Flyfe.Gameplay
             return false;
         }
 
-        public void SetFlowerLength(int segmentCount)
+        public void SetFlowerLength(int activeIndex)
         {
             if (segments == null || segments.Length == 0) return;
             for (int i = 0; i < segments.Length; i++)
             {
-                if (segments[i] != null) segments[i].enabled = (i < segmentCount);
+                // If each collider represents the FULL vine for that specific frame, 
+                // we only enable the ONE active collider, ensuring they are individual.
+                if (segments[i] != null && segments[i].enabled != (i == activeIndex))
+                {
+                    segments[i].enabled = (i == activeIndex);
+                }
             }
         }
 

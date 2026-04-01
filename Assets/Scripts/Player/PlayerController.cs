@@ -34,6 +34,8 @@ namespace Flyfe.Player
         private bool _onSlope = false;
         private bool _isGrounded = false;
         private Vector2 _lastMoveInput;
+        private Rigidbody2D _groundRb;
+        private Transform _originalParent;
 
         private void Awake()
         {
@@ -83,6 +85,7 @@ namespace Flyfe.Player
                 _isGrounded = false;
                 _onSlope = false;
                 _groundNormal = Vector2.up;
+                _groundRb = null;
                 return;
             }
 
@@ -92,6 +95,7 @@ namespace Flyfe.Player
                 _isGrounded = false;
                 _onSlope = false;
                 _groundNormal = Vector2.up;
+                _groundRb = null;
                 return;
             }
 
@@ -106,14 +110,17 @@ namespace Flyfe.Player
                 _groundNormal = hit.normal;
                 float slopeThreshold = _onSlope ? 0.02f : 0.05f;
                 _onSlope = Mathf.Abs(_groundNormal.x) > slopeThreshold;
+                _groundRb = hit.collider.attachedRigidbody;
             }
             else
             {
                 Vector2 center = (Vector2)groundCheck.position + Vector2.down * groundCheckVerticalOffset;
-                _isGrounded = Physics2D.OverlapBox(center, new Vector2(groundCheckRadius * 2, 0.1f), 0f, groundLayer);
+                Collider2D overlapHit = Physics2D.OverlapBox(center, new Vector2(groundCheckRadius * 2, 0.1f), 0f, groundLayer);
+                _isGrounded = overlapHit != null;
                 
                 _onSlope = false;
                 _groundNormal = Vector2.up;
+                _groundRb = overlapHit != null ? overlapHit.attachedRigidbody : null;
             }
         }
 
@@ -178,23 +185,43 @@ namespace Flyfe.Player
             {
                 _rigidbody.gravityScale = _initialGravityScale;
                 
+                Vector2 platformVel = Vector2.zero;
+                if (_isGrounded && _groundRb != null && _groundRb.bodyType != RigidbodyType2D.Static)
+                {
+                    // Inherit the exact velocity of the moving/rotating platform at the player's position
+                    platformVel = _groundRb.GetPointVelocity(_rigidbody.position);
+                }
+
                 if (_isGrounded && _onSlope && _rigidbody.linearVelocity.y < 0.1f)
                 {
                     if (Mathf.Abs(moveInput.x) > 0.01f)
                     {
                         Vector2 slopeTangent = new Vector2(_groundNormal.y, -_groundNormal.x);
                         Vector2 moveDirection = slopeTangent * moveInput.x;
-                        _rigidbody.linearVelocity = new Vector2(moveDirection.x * moveSpeed, moveDirection.y * moveSpeed);
+                        _rigidbody.linearVelocity = new Vector2(moveDirection.x * moveSpeed + platformVel.x, moveDirection.y * moveSpeed + platformVel.y);
                     }
                     else
                     {
-                        _rigidbody.linearVelocity = Vector2.zero;
+                        // Add a downward 'glue' force to stick to the curving pendulum instead of tangentially flying off
+                        _rigidbody.linearVelocity = platformVel - (_groundNormal * 2f);
                         _rigidbody.gravityScale = 0; 
                     }
                 }
                 else
                 {
-                    _rigidbody.linearVelocity = new Vector2(moveInput.x * moveSpeed, _rigidbody.linearVelocity.y);
+                    if (Mathf.Abs(moveInput.x) > 0.01f)
+                    {
+                        _rigidbody.linearVelocity = new Vector2(moveInput.x * moveSpeed + platformVel.x, _rigidbody.linearVelocity.y);
+                    }
+                    else if (platformVel != Vector2.zero)
+                    {
+                        // Stick to flat moving platform (like the bottom of the pendulum arc)
+                        _rigidbody.linearVelocity = platformVel - (_groundNormal * 2f);
+                    }
+                    else
+                    {
+                        _rigidbody.linearVelocity = new Vector2(0, _rigidbody.linearVelocity.y);
+                    }
                 }
             }
         }
