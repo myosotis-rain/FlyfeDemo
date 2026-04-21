@@ -10,6 +10,7 @@ namespace Flyfe.UI
         [Header("UI Elements")]
         [SerializeField] private MeterScript timerMeter; 
         [SerializeField] private Text btnText;
+        [SerializeField] private Text gemCountText;
         [SerializeField] private GameObject skillSelectionPanel;
         
         [Header("Dynamic Positioning")]
@@ -28,8 +29,17 @@ namespace Flyfe.UI
             }
         }
 
-        void OnEnable() => GameStateManager.OnWorldChanged += UpdateUI;
-        void OnDisable() => GameStateManager.OnWorldChanged -= UpdateUI;
+        void OnEnable() 
+        {
+            GameStateManager.OnWorldChanged += UpdateUI;
+            GemManager.OnGemsChanged += UpdateGemDisplay;
+        }
+
+        void OnDisable() 
+        {
+            GameStateManager.OnWorldChanged -= UpdateUI;
+            GemManager.OnGemsChanged -= UpdateGemDisplay;
+        }
 
         void Start()
         {
@@ -47,6 +57,17 @@ namespace Flyfe.UI
             // Initial UI State
             if (GameStateManager.Instance != null)
                 UpdateUI(GameStateManager.Instance.CurrentState);
+
+            if (GemManager.Instance != null)
+                UpdateGemDisplay(GemManager.Instance.GetGemCount());
+        }
+
+        private void UpdateGemDisplay(int count)
+        {
+            if (gemCountText != null)
+            {
+                gemCountText.text = count.ToString("D2"); // Format as 01, 02, etc.
+            }
         }
 
         void Update()

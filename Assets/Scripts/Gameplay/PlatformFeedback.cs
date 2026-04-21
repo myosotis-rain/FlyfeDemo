@@ -5,24 +5,31 @@ using Flyfe.Core;
 namespace Flyfe.Gameplay
 {
     /// <summary>
-    /// A professional-grade feedback component for interactable platforms.
-    /// Provides isolated visual feedback without affecting physical stability.
+    /// An elite-grade feedback component for platforms.
+    /// Uses Animation Curves for professional "game feel" and preserves physics stability.
     /// </summary>
     [SelectionBase] 
     public class PlatformFeedback : MonoBehaviour, IResettable
     {
-        [Header("Appearance")]
+        [Header("Visuals")]
         [SerializeField] private Color landedColor = Color.cyan;
-        [SerializeField] private float pulseScale = 1.03f;
-        [SerializeField] private float pulseDuration = 0.15f;
+        [SerializeField] private AnimationCurve pulseCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+        [SerializeField] private float pulseIntensity = 0.05f; // Extra scale added during pulse
+        [SerializeField] private float pulseDuration = 0.2f;
 
-        [Header("Configuration")]
+        [Header("Detection Settings")]
+        [Tooltip("How much higher than the platform's center the footer must be to trigger.")]
+        [SerializeField] private float heightThreshold = -0.1f;
+        [SerializeField] private float exitBuffer = 0.15f;
         [SerializeField] private bool triggerByShadow = true;
-        [Tooltip("The visual child that will pulse. If null, this object is used.")]
+        
+        [Header("References")]
+        [Tooltip("Explicitly assign the SpriteRenderer that should change color.")]
+        [SerializeField] private SpriteRenderer targetRenderer;
+        [Tooltip("The visual child that will pulse. DO NOT use the object with the Collider.")]
         [SerializeField] private Transform visualRoot;
 
         // Internal State
-        private SpriteRenderer _spriteRenderer;
         private Color _originalColor;
         private Vector3 _originalScale;
         private bool _isLanded;
@@ -31,34 +38,85 @@ namespace Flyfe.Gameplay
 
         private void Awake()
         {
-            // Cache visuals
-            _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            // Search Logic: 1. Manual Assignment -> 2. Visual Root -> 3. Children
+            if (targetRenderer == null && visualRoot != null) targetRenderer = visualRoot.GetComponent<SpriteRenderer>();
+            if (targetRenderer == null) targetRenderer = GetComponentInChildren<SpriteRenderer>();
             
-            // Default visual root to this object if not specified
-            if (visualRoot == null) visualRoot = (_spriteRenderer != null) ? _spriteRenderer.transform : transform;
+            // Auto-assign visualRoot if missing
+            if (visualRoot == null) visualRoot = (targetRenderer != null) ? targetRenderer.transform : transform;
             
-            if (_spriteRenderer != null) _originalColor = _spriteRenderer.color;
+            if (targetRenderer != null) 
+            {
+                _originalColor = targetRenderer.color;
+                Debug.Log($"[PlatformFeedback] Found Renderer: {targetRenderer.name}, Original Color: {_originalColor}");
+            }
+            else
+            {
+                Debug.LogError("[PlatformFeedback] No SpriteRenderer found on " + name);
+            }
+
             _originalScale = visualRoot.localScale;
         }
 
-        private void OnCollisionEnter2D(Collision2D collision) => HandleEntry(collision.gameObject);
-        private void OnTriggerEnter2D(Collider2D other) => HandleEntry(other.gameObject);
-
-        private void HandleEntry(GameObject other)
+        private void OnCollisionEnter2D(Collision2D collision) 
         {
-            if (_isLanded || Time.time < _exitCooldown) return;
-
-            if (other.CompareTag(Tags.Player) || (triggerByShadow && other.CompareTag(Tags.Shadow)))
+            bool isTopCollision = false;
+            
+            // Iterate through all contacts to find any that indicate a "top surface" hit
+            // A surface facing UP has a normal pointing DOWN from the actor's perspective (negative Y)
+            for (int i = 0; i < collision.contactCount; i++)
             {
-                // Professional height check: ensures landing is on the top 20% of the object
-                float playerFeet = other.transform.position.y;
-                float platformTop = transform.position.y;
-
-                if (playerFeet > platformTop - 0.1f)
+                if (collision.GetContact(i).normal.y < -0.4f) // ~66 degree slope tolerance
                 {
-                    StartFeedback();
+                    isTopCollision = true;
+                    break;
                 }
             }
+            
+            HandleEntry(collision.gameObject, isTopCollision);
+        }
+
+        private void OnTriggerEnter2D(Collider2D other) => HandleEntry(other.gameObject, false);
+
+        private void HandleEntry(GameObject other, bool isTopCollision)
+        {
+            bool isPlayer = other.CompareTag(Tags.Player);
+            bool isShadow = triggerByShadow && other.CompareTag(Tags.Shadow);
+            
+            if (!isPlayer && !isShadow) return;
+
+            // Use a slightly more generous cooldown for stability on irregular surfaces
+            if (_isLanded || Time.time < _exitCooldown) return;
+
+            if (isTopCollision)
+            {
+                TriggerFeedback();
+                return;
+            }
+
+            // Fallback Height Check: Essential for Triggers or ambiguous physics contacts
+            Collider2D otherCollider = other.GetComponent<Collider2D>();
+            Collider2D platformCollider = GetComponent<Collider2D>();
+
+            if (otherCollider != null && platformCollider != null)
+            {
+                float actorFeet = otherCollider.bounds.min.y;
+                
+                // For irregular polygons/slopes, comparing to the CENTER Y is much more stable 
+                // than comparing to the MAX Y (the peak), which would fail at the bottom of a slope.
+                float platformReferenceHeight = platformCollider.bounds.center.y;
+
+                if (actorFeet > platformReferenceHeight + heightThreshold)
+                {
+                    TriggerFeedback();
+                }
+            }
+        }
+
+        private void TriggerFeedback()
+        {
+            _isLanded = true;
+            StartFeedback();
         }
 
         private void OnCollisionExit2D(Collision2D collision) => HandleExit(collision.gameObject);
@@ -68,42 +126,42 @@ namespace Flyfe.Gameplay
         {
             if (other.CompareTag(Tags.Player) || (triggerByShadow && other.CompareTag(Tags.Shadow)))
             {
+                Debug.Log("[PlatformFeedback] Exited platform");
                 _isLanded = false;
-                _exitCooldown = Time.time + 0.15f; // Short buffer to prevent jitter
+                _exitCooldown = Time.time + exitBuffer;
+                
+                // Return color on exit
+                if (targetRenderer != null) targetRenderer.color = _originalColor;
             }
         }
 
         private void StartFeedback()
         {
-            _isLanded = true;
-            
-            if (_spriteRenderer != null) _spriteRenderer.color = landedColor;
+            if (targetRenderer != null) 
+            {
+                Debug.Log($"[PlatformFeedback] Applying color: {landedColor}");
+                targetRenderer.color = landedColor;
+            }
 
             if (_feedbackCoroutine != null) StopCoroutine(_feedbackCoroutine);
-            _feedbackCoroutine = StartCoroutine(FeedbackRoutine());
+            _feedbackCoroutine = StartCoroutine(PulseRoutine());
         }
 
-        private IEnumerator FeedbackRoutine()
+        private IEnumerator PulseRoutine()
         {
             float elapsed = 0f;
-            Vector3 targetScale = _originalScale * pulseScale;
-            float halfDuration = pulseDuration * 0.5f;
 
-            // Animate Up
-            while (elapsed < halfDuration)
+            while (elapsed < pulseDuration)
             {
-                visualRoot.localScale = Vector3.Lerp(_originalScale, targetScale, elapsed / halfDuration);
                 elapsed += Time.deltaTime;
-                yield return null;
-            }
-            visualRoot.localScale = targetScale;
-
-            // Animate Down
-            elapsed = 0f;
-            while (elapsed < halfDuration)
-            {
-                visualRoot.localScale = Vector3.Lerp(targetScale, _originalScale, elapsed / halfDuration);
-                elapsed += Time.deltaTime;
+                float normalizedTime = elapsed / pulseDuration;
+                
+                // Evaluate the curve to get the scale multiplier
+                float curveValue = pulseCurve.Evaluate(normalizedTime);
+                float currentScaleOffset = curveValue * pulseIntensity;
+                
+                visualRoot.localScale = _originalScale + (Vector3.one * currentScaleOffset);
+                
                 yield return null;
             }
             
@@ -123,7 +181,7 @@ namespace Flyfe.Gameplay
             }
 
             if (visualRoot != null) visualRoot.localScale = _originalScale;
-            if (_spriteRenderer != null) _spriteRenderer.color = _originalColor;
+            if (targetRenderer != null) targetRenderer.color = _originalColor;
         }
     }
 }

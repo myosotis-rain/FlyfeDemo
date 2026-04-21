@@ -48,11 +48,12 @@ namespace Flyfe.Gameplay
         {
             _isTransitioning = true;
 
-            // 1. Inform gameplay systems to clean up (Stop recording, reset states)
+            // 1. Inform gameplay systems to clean up (Stop recording, reset states, clear checkpoints)
             if (RecordingService.Instance != null)
             {
                 RecordingService.Instance.ForceResetToPresent();
             }
+            Flyfe.Player.Checkpoint.ClearAllData();
 
             // 2. Trigger the Fade Out via ScreenFader singleton
             if (ScreenFader.Instance != null)

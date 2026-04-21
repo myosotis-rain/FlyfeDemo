@@ -4,5 +4,6 @@ namespace Flyfe.Core
     {
         public const string Player = "Player";
         public const string Shadow = "Shadow";
+        public const string Hazard = "Hazard";
     }
 }

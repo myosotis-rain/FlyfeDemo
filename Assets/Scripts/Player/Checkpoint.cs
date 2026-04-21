@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Flyfe.Core;
 
 namespace Flyfe.Player
 {
@@ -11,8 +12,22 @@ namespace Flyfe.Player
         [SerializeField] private Color inactiveColor = Color.red;
         [SerializeField] private SpriteRenderer feedbackRenderer;
 
-        // Static list to track only checkpoints the player has actually touched
+        // Track all checkpoints in the scene for visual management
+        private static List<Checkpoint> _allCheckpoints = new List<Checkpoint>();
+        // Track only checkpoints the player has actually touched
         private static List<Checkpoint> _visitedCheckpoints = new List<Checkpoint>();
+
+        private void Awake()
+        {
+            _allCheckpoints.Add(this);
+            
+            // Ensure the checkpoint is always a trigger so the player 
+            // doesn't bump into it or get glued to its surface.
+            if (TryGetComponent<Collider2D>(out var col))
+            {
+                col.isTrigger = true;
+            }
+        }
 
         private void Start()
         {
@@ -22,12 +37,22 @@ namespace Flyfe.Player
 
         private void OnDestroy()
         {
+            _allCheckpoints.Remove(this);
             _visitedCheckpoints.Remove(this);
+        }
+
+        /// <summary>
+        /// Call this when changing levels or restarting to prevent cross-scene data leakage.
+        /// </summary>
+        public static void ClearAllData()
+        {
+            _allCheckpoints.Clear();
+            _visitedCheckpoints.Clear();
         }
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (other.CompareTag("Player"))
+            if (other.CompareTag(Tags.Player))
             {
                 Activate();
             }
@@ -37,13 +62,15 @@ namespace Flyfe.Player
         {
             if (!isActive)
             {
-                // Deactivate all other checkpoints visuals
-                Checkpoint[] allCheckpoints = FindObjectsByType<Checkpoint>(FindObjectsSortMode.None);
-                foreach (var cp in allCheckpoints) cp.SetVisualInactive();
+                // Professional Practice: Instead of searching the whole scene, 
+                // we use our cached list of checkpoints to update visuals.
+                foreach (var cp in _allCheckpoints) 
+                {
+                    cp.SetVisualInactive();
+                }
 
                 isActive = true;
                 
-                // Add to visited list if not already there
                 if (!_visitedCheckpoints.Contains(this))
                 {
                     _visitedCheckpoints.Add(this);
@@ -51,7 +78,6 @@ namespace Flyfe.Player
 
                 UpdateVisuals();
 
-                // Update the player's respawn point
                 PlayerRespawn respawnSystem = FindFirstObjectByType<PlayerRespawn>();
                 if (respawnSystem != null)
                 {
@@ -75,9 +101,6 @@ namespace Flyfe.Player
             }
         }
 
-        /// <summary>
-        /// Finds the nearest checkpoint among those the player has already visited.
-        /// </summary>
         public static Transform GetNearestVisitedTransform(Vector3 playerPos)
         {
             if (_visitedCheckpoints.Count == 0) return null;

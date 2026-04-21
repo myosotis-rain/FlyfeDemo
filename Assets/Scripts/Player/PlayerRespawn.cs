@@ -4,45 +4,103 @@ using Flyfe.UI;
 using Flyfe.Dialogue;
 using Flyfe.Recording;
 using Flyfe.Camera;
+using Flyfe.Core;
+using System.Collections;
 
 namespace Flyfe.Player
 {
+    /// <summary>
+    /// Professional Respawn System.
+    /// Handles death (hazards/pits), screen transitions, and world-state resets.
+    /// </summary>
     public class PlayerRespawn : MonoBehaviour
     {
+        [Header("Death Settings")]
+        [Tooltip("The Y-coordinate below which the player is considered to have fallen out of bounds.")]
         [SerializeField] private float fallThreshold = -50f;
+        [Tooltip("How long the screen stays black during respawn.")]
+        [SerializeField] private float fadeDuration = 0.4f;
+
+        [Header("Runtime State")]
         [SerializeField] private Transform respawnPoint;
 
         private Rigidbody2D _rb;
-        private float _startTime;
-        private float _lastRespawnTime;
+        private PlayerController _controller;
+        private bool _isRespawning = false;
 
         void Awake()
         {
             _rb = GetComponent<Rigidbody2D>();
-            _startTime = Time.time;
+            _controller = GetComponent<PlayerController>();
         }
 
         void Update()
         {
-            // Give systems a moment to settle, and add a small cooldown after respawn
-            if (Time.time - _startTime < 0.5f || Time.time - _lastRespawnTime < 0.5f) return;
+            if (_isRespawning) return;
 
-            // Pause during dialogue/cutscenes
-            if ((DialogueUI.Instance != null && DialogueUI.Instance.IsOpen) || CutsceneController.AnyCutsceneActive) return;
-
-            // Trigger respawn if below threshold
+            // 1. Fall Detection
             if (transform.position.y < fallThreshold)
             {
-                Respawn();
+                Die();
             }
+        }
+
+        private void OnCollisionEnter2D(Collision2D collision)
+        {
+            // 2. Spike/Hazard Detection (using Collision)
+            if (collision.gameObject.CompareTag(Tags.Hazard)) Die();
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            // 2b. Spike/Hazard Detection (using Trigger for overlapping hazards)
+            if (other.CompareTag(Tags.Hazard)) Die();
         }
 
         public void SetRespawnPoint(Transform newPoint) => respawnPoint = newPoint;
 
-        public void Respawn()
+        public void Die()
         {
-            _lastRespawnTime = Time.time;
+            if (_isRespawning) return;
+            StartCoroutine(RespawnSequence());
+        }
 
+        private IEnumerator RespawnSequence()
+        {
+            _isRespawning = true;
+
+            // A. Freeze Player
+            if (_rb != null) _rb.simulated = false;
+            if (_controller != null) _controller.enabled = false;
+
+            // B. Fade Out
+            if (ScreenFader.Instance != null)
+            {
+                yield return ScreenFader.Instance.FadeOutCoroutine(fadeDuration);
+            }
+
+            // C. Relocate & Reset
+            PerformTeleport();
+
+            // D. Wait a tiny bit for camera/physics to settle while black
+            yield return new WaitForSeconds(0.1f);
+
+            // E. Fade In
+            if (ScreenFader.Instance != null)
+            {
+                yield return ScreenFader.Instance.FadeInCoroutine(fadeDuration);
+            }
+
+            // F. Restore Player
+            if (_rb != null) _rb.simulated = true;
+            if (_controller != null) _controller.enabled = true;
+            
+            _isRespawning = false;
+        }
+
+        private void PerformTeleport()
+        {
+            // 1. Determine destination
             if (respawnPoint == null)
             {
                 respawnPoint = Checkpoint.GetNearestVisitedTransform(transform.position);
@@ -50,22 +108,25 @@ namespace Flyfe.Player
 
             if (respawnPoint != null)
             {
-                // 1. Clear ALL momentum
+                // 2. Hierarchy and Physics Cleanup
+                transform.SetParent(null);
+
                 if (_rb != null)
                 {
                     _rb.linearVelocity = Vector2.zero;
                     _rb.angularVelocity = 0f;
                     _rb.totalForce = Vector2.zero;
                     _rb.totalTorque = 0f;
+                    
+                    _rb.position = respawnPoint.position;
+                    _rb.rotation = respawnPoint.rotation.eulerAngles.z;
                 }
 
-                // 2. Perform the teleport
                 transform.SetPositionAndRotation(respawnPoint.position, respawnPoint.rotation);
 
-                // 3. Resync world elements (this triggers the camera snap and background stabilization)
+                // 3. System Resync
                 ParallaxLayer.ResyncAll();
 
-                // 4. Reset Recording system
                 if (RecordingService.Instance != null)
                 {
                     RecordingService.Instance.ForceResetToPresent();
@@ -73,7 +134,7 @@ namespace Flyfe.Player
             }
             else
             {
-                // Fallback: Reload Scene
+                // Absolute Fallback: Reload current scene
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             }
         }

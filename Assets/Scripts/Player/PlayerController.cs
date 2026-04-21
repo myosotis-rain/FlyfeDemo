@@ -34,8 +34,13 @@ namespace Flyfe.Player
         private bool _onSlope = false;
         private bool _isGrounded = false;
         private Vector2 _lastMoveInput;
-        private Rigidbody2D _groundRb;
-        private Transform _originalParent;
+        private Rigidbody2D _groundFilterRb; // Renamed to avoid confusion
+        private ContactFilter2D _groundFilter;
+        private Transform _activePlatform;
+        private float _unparentTimer = 0f;
+        private float _jumpGroundLockout = 0f;
+        private float _parentLockout = 0f; // New lockout for parenting
+        private const float UNPARENT_GRACE_TIME = 0.15f;
 
         private void Awake()
         {
@@ -46,10 +51,20 @@ namespace Flyfe.Player
             _initialGravityScale = _rigidbody.gravityScale;
             _skillManager = GetComponent<SkillManager>(); 
 
+            // Initialize ground filter to ignore triggers
+            _groundFilter = new ContactFilter2D();
+            _groundFilter.useLayerMask = true;
+            _groundFilter.layerMask = groundLayer;
+            _groundFilter.useTriggers = false; // THIS IS THE CRITICAL FIX
+
             if (_rigidbody.interpolation == RigidbodyInterpolation2D.None)
             {
                 _rigidbody.interpolation = RigidbodyInterpolation2D.Interpolate;
             }
+            
+            // Professional Practice: Continuous collision detection prevents 
+            // 'tunneling' through moving platforms or thin floors.
+            _rigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
 
         void Start()
@@ -80,12 +95,21 @@ namespace Flyfe.Player
 
         private void UpdateGroundInfo()
         {
+            if (_jumpGroundLockout > 0)
+            {
+                _jumpGroundLockout -= Time.fixedDeltaTime;
+                _isGrounded = false;
+                _onSlope = false;
+                _groundFilterRb = null;
+                return;
+            }
+
             if (groundCheck == null)
             {
                 _isGrounded = false;
                 _onSlope = false;
                 _groundNormal = Vector2.up;
-                _groundRb = null;
+                _groundFilterRb = null;
                 return;
             }
 
@@ -95,32 +119,57 @@ namespace Flyfe.Player
                 _isGrounded = false;
                 _onSlope = false;
                 _groundNormal = Vector2.up;
-                _groundRb = null;
+                _groundFilterRb = null;
                 return;
             }
 
             Vector2 rayStart = (Vector2)groundCheck.position + Vector2.up * 0.1f;
             float totalDist = raycastDistance + 0.1f; 
             
-            RaycastHit2D hit = Physics2D.BoxCast(rayStart, new Vector2(groundCheckRadius * 1.5f, 0.05f), _rigidbody.rotation, Vector2.down, totalDist, groundLayer);
+            // Use filtered cast to ignore triggers and catch multiple potential hits
+            RaycastHit2D[] hits = new RaycastHit2D[5]; 
+            int hitCount = Physics2D.BoxCast(rayStart, new Vector2(groundCheckRadius * 1.5f, 0.05f), _rigidbody.rotation, Vector2.down, _groundFilter, hits, totalDist);
 
-            if (hit.collider != null && hit.collider.gameObject != gameObject)
+            bool foundGround = false;
+            for (int i = 0; i < hitCount; i++)
             {
-                _isGrounded = true;
-                _groundNormal = hit.normal;
-                float slopeThreshold = _onSlope ? 0.02f : 0.05f;
-                _onSlope = Mathf.Abs(_groundNormal.x) > slopeThreshold;
-                _groundRb = hit.collider.attachedRigidbody;
+                // Professional Practice: Ignore the player's own collider
+                if (hits[i].collider != null && hits[i].collider.gameObject != gameObject)
+                {
+                    _isGrounded = true;
+                    _groundNormal = hits[i].normal;
+
+                    float slopeThreshold = _onSlope ? 0.05f : 0.1f;
+                    _onSlope = Mathf.Abs(_groundNormal.x) > slopeThreshold;
+
+                    _groundFilterRb = hits[i].collider.attachedRigidbody;
+                    foundGround = true;
+                    _unparentTimer = UNPARENT_GRACE_TIME; // Reset the buffer while on ground
+                    break;
+                }
             }
-            else
+
+            if (!foundGround)
             {
                 Vector2 center = (Vector2)groundCheck.position + Vector2.down * groundCheckVerticalOffset;
-                Collider2D overlapHit = Physics2D.OverlapBox(center, new Vector2(groundCheckRadius * 2, 0.1f), 0f, groundLayer);
-                _isGrounded = overlapHit != null;
+                Collider2D[] results = new Collider2D[5];
+                int overlapCount = Physics2D.OverlapBox(center, new Vector2(groundCheckRadius * 2, 0.1f), 0f, _groundFilter, results);
+                
+                _isGrounded = false;
+                _groundFilterRb = null;
+
+                for (int i = 0; i < overlapCount; i++)
+                {
+                    if (results[i].gameObject != gameObject)
+                    {
+                        _isGrounded = true;
+                        _groundFilterRb = results[i].attachedRigidbody;
+                        break;
+                    }
+                }
                 
                 _onSlope = false;
                 _groundNormal = Vector2.up;
-                _groundRb = overlapHit != null ? overlapHit.attachedRigidbody : null;
             }
         }
 
@@ -129,7 +178,8 @@ namespace Flyfe.Player
             if (_rigidbody == null) return;
 
             float targetAngle = 0f;
-            if (_isGrounded && _rigidbody.linearVelocity.y < 0.1f)
+            // Removed the y-velocity check as it causes jitters on upward-swinging platforms
+            if (_isGrounded)
             {
                 targetAngle = Vector2.SignedAngle(Vector2.up, _groundNormal);
                 targetAngle = Mathf.Clamp(targetAngle, -maxRotationAngle, maxRotationAngle);
@@ -138,14 +188,16 @@ namespace Flyfe.Player
             float currentAngle = _rigidbody.rotation;
             float angleDiff = Mathf.Abs(Mathf.DeltaAngle(currentAngle, targetAngle));
 
-            if (angleDiff < 0.2f) 
+            if (angleDiff < 0.1f) 
             {
                 _rigidbody.MoveRotation(targetAngle);
+                _rigidbody.angularVelocity = 0f; // Prevent rotation drift jitter
                 return;
             }
 
             float smoothedAngle = Mathf.LerpAngle(currentAngle, targetAngle, Time.fixedDeltaTime * slopeRotateSpeed);
             _rigidbody.MoveRotation(smoothedAngle);
+            _rigidbody.angularVelocity = 0f; // Prevent rotation drift jitter
         }
 
         public void Move(Vector2 moveInput) => _lastMoveInput = moveInput;
@@ -186,44 +238,69 @@ namespace Flyfe.Player
                 _rigidbody.gravityScale = _initialGravityScale;
                 
                 Vector2 platformVel = Vector2.zero;
-                if (_isGrounded && _groundRb != null && _groundRb.bodyType != RigidbodyType2D.Static)
+                // We only parent if we are upright (standing on the flower, not hitting the side)
+                bool isUpright = _isGrounded && _groundNormal.y > 0.5f;
+
+                if (_parentLockout > 0) _parentLockout -= Time.fixedDeltaTime;
+
+                if (isUpright && _groundFilterRb != null && _groundFilterRb.bodyType == RigidbodyType2D.Kinematic)
                 {
-                    // Inherit the exact velocity of the moving/rotating platform at the player's position
-                    platformVel = _groundRb.GetPointVelocity(_rigidbody.position);
+                    platformVel = _groundFilterRb.GetPointVelocity(_rigidbody.position);
+                    
+                    // Only parent if we are falling or already grounded (to avoid snapping mid-jump)
+                    bool isLanding = _rigidbody.bodyType == RigidbodyType2D.Dynamic && _rigidbody.linearVelocity.y <= 0.1f;
+                    bool isAlreadyParented = _activePlatform != null;
+
+                    if ((isLanding && _parentLockout <= 0) || isAlreadyParented)
+                    {
+                        if (_activePlatform != _groundFilterRb.transform)
+                        {
+                            _activePlatform = _groundFilterRb.transform;
+                            transform.SetParent(_activePlatform);
+                            
+                            // Switch to Kinematic to perfectly follow the flower's rotation/swing
+                            _rigidbody.bodyType = RigidbodyType2D.Kinematic;
+                            _rigidbody.linearVelocity = Vector2.zero;
+                        }
+
+                        _rigidbody.gravityScale = 0;
+
+                        // While Kinematic and parented, we move the transform locally
+                        if (Mathf.Abs(moveInput.x) > 0.01f)
+                        {
+                            transform.Translate(new Vector3(moveInput.x * moveSpeed * Time.fixedDeltaTime, 0, 0), Space.Self);
+                        }
+                    }
+                }
+                else if (_activePlatform != null)
+                {
+                    // Clean Exit (Walking off the edge)
+                    _unparentTimer -= Time.fixedDeltaTime;
+                    if (_unparentTimer <= 0)
+                    {
+                        ExitPlatform(platformVel);
+                    }
                 }
 
-                if (_isGrounded && _onSlope && _rigidbody.linearVelocity.y < 0.1f)
+                if (_rigidbody.bodyType == RigidbodyType2D.Dynamic)
                 {
-                    if (Mathf.Abs(moveInput.x) > 0.01f)
-                    {
-                        Vector2 slopeTangent = new Vector2(_groundNormal.y, -_groundNormal.x);
-                        Vector2 moveDirection = slopeTangent * moveInput.x;
-                        _rigidbody.linearVelocity = new Vector2(moveDirection.x * moveSpeed + platformVel.x, moveDirection.y * moveSpeed + platformVel.y);
-                    }
-                    else
-                    {
-                        // Add a downward 'glue' force to stick to the curving pendulum instead of tangentially flying off
-                        _rigidbody.linearVelocity = platformVel - (_groundNormal * 2f);
-                        _rigidbody.gravityScale = 0; 
-                    }
-                }
-                else
-                {
-                    if (Mathf.Abs(moveInput.x) > 0.01f)
-                    {
-                        _rigidbody.linearVelocity = new Vector2(moveInput.x * moveSpeed + platformVel.x, _rigidbody.linearVelocity.y);
-                    }
-                    else if (platformVel != Vector2.zero)
-                    {
-                        // Stick to flat moving platform (like the bottom of the pendulum arc)
-                        _rigidbody.linearVelocity = platformVel - (_groundNormal * 2f);
-                    }
-                    else
-                    {
-                        _rigidbody.linearVelocity = new Vector2(0, _rigidbody.linearVelocity.y);
-                    }
+                    // Normal Movement (Air or static ground)
+                    _rigidbody.linearVelocity = new Vector2(moveInput.x * moveSpeed, _rigidbody.linearVelocity.y);
                 }
             }
+        }
+
+        private void ExitPlatform(Vector2 inheritance)
+        {
+            if (_activePlatform == null) return;
+            
+            _rigidbody.bodyType = RigidbodyType2D.Dynamic;
+            _rigidbody.gravityScale = _initialGravityScale;
+            _rigidbody.linearVelocity = inheritance;
+            
+            _activePlatform = null;
+            transform.SetParent(null);
+            _parentLockout = 0.1f; // Prevent immediate re-parenting to this or other platforms
         }
 
         public void Jump()
@@ -233,8 +310,21 @@ namespace Flyfe.Player
             bool isOnVine = IsOnVine();
             if (!isOnVine && !_isGrounded) return;
 
+            // Momentum Inheritance: Capture platform speed before we detach
+            Vector2 inheritance = Vector2.zero;
+            if (_activePlatform != null && _groundFilterRb != null)
+            {
+                inheritance = _groundFilterRb.GetPointVelocity(_rigidbody.position);
+                ExitPlatform(inheritance);
+            }
+
+            _jumpGroundLockout = 0.2f; // Prevent re-sticking for 0.2s
             _rigidbody.gravityScale = _initialGravityScale;
-            _rigidbody.linearVelocity = new Vector2(_rigidbody.linearVelocity.x, jumpForce);
+            
+            // Launch = (Platform Speed) + (Horizontal Input) + (Jump Force)
+            float jumpX = (_lastMoveInput.x * moveSpeed) + inheritance.x;
+            _rigidbody.linearVelocity = new Vector2(jumpX, jumpForce + inheritance.y);
+            
             _isGrounded = false;
         }
 
