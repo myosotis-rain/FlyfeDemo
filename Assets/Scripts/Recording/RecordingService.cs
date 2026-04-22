@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Flyfe.Core;
@@ -51,8 +52,7 @@ namespace Flyfe.Recording
 
         private void Awake()
         {
-            if (Instance == null) Instance = this;
-            else Destroy(gameObject);
+            Instance = this;
 
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player) _playerRb = player.GetComponent<Rigidbody2D>();
@@ -94,18 +94,33 @@ namespace Flyfe.Recording
         {
             // Determine Shadow Prefab
             GameObject prefabToSpawn = defaultShadowPrefab;
-            var psm = _playerRb.GetComponent<SkillManager>();
-            if (psm != null && psm.ActiveSkill != null)
+            
+            // Professional Practice: Use the Static Persisted Type instead of the component type.
+            // This is more reliable during scene transitions or world-swaps.
+            Type activeType = SkillManager.PersistedSkillType;
+            string activeSkillName = (activeType != null) ? activeType.Name : "NoSkill";
+
+            bool found = false;
+            foreach (var mapping in shadowMappings)
             {
-                string skillName = psm.ActiveSkill.GetType().Name;
-                foreach (var mapping in shadowMappings)
-                {
-                    if (mapping.skillName == skillName) 
-                    { 
-                        prefabToSpawn = mapping.prefab; 
-                        break; 
-                    }
+                if (string.Equals(mapping.skillName, activeSkillName, System.StringComparison.OrdinalIgnoreCase)) 
+                { 
+                    prefabToSpawn = mapping.prefab; 
+                    Debug.Log($"<color=orange>[Recording]</color> Authoritative Match! Skill: {activeSkillName} -> Spawning: {prefabToSpawn.name}");
+                    found = true;
+                    break; 
                 }
+            }
+
+            if (!found && activeType != null)
+            {
+                Debug.LogWarning($"<color=red>[Recording]</color> No mapping for {activeSkillName}. Using Default.");
+            }
+            
+            if (prefabToSpawn == null) 
+            {
+                Debug.LogError("<color=red>[Recording]</color> FATAL: No prefab to spawn! Check your defaultShadowPrefab slot.");
+                return;
             }
             _recordedPrefab = prefabToSpawn;
             CleanupShadows(false); 

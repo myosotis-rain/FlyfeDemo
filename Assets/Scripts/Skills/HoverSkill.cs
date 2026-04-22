@@ -58,7 +58,10 @@ namespace Flyfe.Skills
         public void EndSkill(Rigidbody2D rb)
         {
             if (!_isActive) return;
-            if (rb != null) rb.gravityScale = _originalGravityScale;
+            if (rb != null) 
+            {
+                rb.gravityScale = _originalGravityScale;
+            }
             _isActive = false;
             Debug.Log(name + " Hover ENDED.");
         }

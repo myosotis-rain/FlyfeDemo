@@ -1,5 +1,6 @@
 using UnityEngine;
 using Flyfe.Gameplay;
+using Flyfe.Recording;
 
 namespace Flyfe.Skills
 {
@@ -48,21 +49,24 @@ namespace Flyfe.Skills
         {
             if (platformPrefab == null)
             {
-                Debug.LogWarning("FairySkill: No Platform Prefab assigned!");
+                Debug.LogWarning("ManifestSkill: No Platform Prefab assigned!");
                 return;
             }
 
             // Calculate spawn position relative to player
             Vector3 spawnPos = characterRb.transform.position + (Vector3)platformOffset;
             
+            // Professional Practice: Parent to the RecordingService actorRoot
+            // This ensures the platform survives world-swaps and shows up in the Present world.
+            Transform parent = (RecordingService.Instance != null) ? RecordingService.Instance.transform : null;
+            
             // Spawn the platform
-            GameObject platform = Instantiate(platformPrefab, spawnPos, Quaternion.identity);
+            GameObject platform = Instantiate(platformPrefab, spawnPos, Quaternion.identity, parent);
             
             // Mark as used for air-recovery balancing
             _hasUsedInAir = true;
 
-            // Optional: Add a little "poof" effect or sound trigger here
-            Debug.Log("<color=cyan>[FairySkill]</color> Platform Manifested!");
+            Debug.Log("<color=cyan>[ManifestSkill]</color> Platform Manifested!");
         }
     }
 }

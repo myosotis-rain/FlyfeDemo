@@ -27,7 +27,9 @@ namespace Flyfe.UI
         {
             if (_playerSkillManager != null && activeSkillText != null)
             {
-                activeSkillText.text = _playerSkillManager.ActiveSkill?.GetType().Name ?? "None";
+                string rawName = _playerSkillManager.ActiveSkill?.GetType().Name ?? "None";
+                // Professional Practice: Strip the word 'Skill' for a cleaner UI
+                activeSkillText.text = rawName.Replace("Skill", "").ToUpper();
             }
         }
     }

@@ -12,8 +12,12 @@ namespace Flyfe.Recording
         private List<RecordedFrame> _frames;
         private int _index = 0;
         private bool _active = false;
-        private SpriteRenderer _spriteRenderer;
         private Rigidbody2D _rb;
+
+        // Interpolation variables
+        private Vector3 _startPos;
+        private Vector3 _targetPos;
+        private float _lerpTimer = 0f;
 
         public float ReplayProgress => (_frames != null && _frames.Count > 0) ? (float)_index / _frames.Count : 0f;
 
@@ -22,20 +26,33 @@ namespace Flyfe.Recording
             _frames = recordedFrames;
             _index = 0;
             _active = true;
-            _spriteRenderer = GetComponent<SpriteRenderer>();
 
             if (TryGetComponent<Rigidbody2D>(out _rb))
             {
                 _rb.simulated = true; 
                 _rb.bodyType = RigidbodyType2D.Kinematic;
                 _rb.useFullKinematicContacts = true;
+                // Professional Practice: Use Interpolate for smooth visuals during MovePosition
+                _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             }
+
+            _startPos = transform.position;
+            _targetPos = transform.position;
 
             SpriteRenderer[] sprites = GetComponentsInChildren<SpriteRenderer>();
             foreach (var sprite in sprites)
             {
                 sprite.color = new Color(0.6f, 0.6f, 0.6f, 1.0f);
             }
+        }
+
+        void Update()
+        {
+            if (!_active || _frames == null) return;
+
+            // Visual Interpolation: Smoothly move between fixed physics frames
+            _lerpTimer += Time.deltaTime / Time.fixedDeltaTime;
+            transform.position = Vector3.Lerp(_startPos, _targetPos, _lerpTimer);
         }
 
         void FixedUpdate()
@@ -46,8 +63,12 @@ namespace Flyfe.Recording
             {
                 RecordedFrame currentFrame = _frames[_index];
                 
-                if (_rb != null) _rb.MovePosition(currentFrame.position);
-                else transform.position = currentFrame.position;
+                // Update interpolation targets
+                _startPos = transform.position;
+                _targetPos = currentFrame.position;
+                _lerpTimer = 0f;
+
+                if (_rb != null) _rb.MovePosition(_targetPos);
 
                 if (currentFrame.interacted)
                 {

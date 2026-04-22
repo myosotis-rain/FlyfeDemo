@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using Flyfe.Core;
 using Flyfe.Recording;
 
@@ -9,8 +10,8 @@ namespace Flyfe.UI
     {
         [Header("UI Elements")]
         [SerializeField] private MeterScript timerMeter; 
-        [SerializeField] private Text btnText;
-        [SerializeField] private Text gemCountText;
+        [SerializeField] private TextMeshProUGUI btnText;
+        [SerializeField] private TextMeshProUGUI gemCountText;
         [SerializeField] private GameObject skillSelectionPanel;
         
         [Header("Dynamic Positioning")]

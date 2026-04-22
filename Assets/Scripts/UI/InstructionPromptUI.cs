@@ -21,6 +21,8 @@ namespace Flyfe.UI
         
         [Header("Detection Settings")]
         [SerializeField] private float detectionRadius = 3.5f; 
+        [Tooltip("Extra distance buffer to prevent flickering when exiting range.")]
+        [SerializeField] private float exitHysteresis = 0.5f;
         [SerializeField] private bool alwaysShowOnRange = false; 
         [SerializeField] private bool onlyShowInMemoryWorld = false;
         [SerializeField] private bool showDebugLogs = false;
@@ -40,8 +42,12 @@ namespace Flyfe.UI
         private Vector3 _baseScale;
         private float _currentAlpha = 0f;
         private GameObject _playerObj;
+        private GameObject _shadowObj;
         private float _animTimer;
         private bool _shouldBeVisible = false;
+        private bool _isCurrentlyInRange = false;
+        private float _flickerPreventionTimer = 0f;
+        private const float MIN_VISIBLE_TIME = 0.15f;
 
         private void Start()
         {
@@ -71,8 +77,16 @@ namespace Flyfe.UI
             _playerObj = GameObject.FindGameObjectWithTag("Player");
         }
 
+        private void FindShadow()
+        {
+            _shadowObj = GameObject.FindGameObjectWithTag("Shadow");
+        }
+
         private void Update()
         {
+            if (visualContainer == null) return;
+            if (_flickerPreventionTimer > 0) _flickerPreventionTimer -= Time.deltaTime;
+
             // 1. Professional Practice: Hide prompts during cutscenes
             if (CutsceneController.AnyCutsceneActive)
             {
@@ -88,43 +102,34 @@ namespace Flyfe.UI
                     if (visualContainer.activeSelf || _currentAlpha > 0) 
                     {
                         _shouldBeVisible = false;
-                        // Fade out normally below
                     }
                     else return; 
                 }
             }
 
             if (_playerObj == null) FindPlayer();
+            // Re-find shadow if it's gone or dead
+            if (_shadowObj == null || !_shadowObj.activeInHierarchy) FindShadow();
 
-            float dist = float.MaxValue;
-            bool inRange = false;
+            // 2. Detection with Hysteresis
+            float distToPlayer = (_playerObj != null && _playerObj.activeInHierarchy) ? Vector2.Distance(transform.position, _playerObj.transform.position) : float.MaxValue;
+            float distToShadow = (_shadowObj != null && _shadowObj.activeInHierarchy) ? Vector2.Distance(transform.position, _shadowObj.transform.position) : float.MaxValue;
+            
+            float minDist = Mathf.Min(distToPlayer, distToShadow);
 
-            if (_playerObj != null && _playerObj.activeInHierarchy)
-            {
-                dist = Vector2.Distance(transform.position, _playerObj.transform.position);
-                if (dist <= detectionRadius) inRange = true;
-            }
-
-            if (!inRange)
-            {
-                GameObject shadow = GameObject.FindWithTag("Shadow");
-                if (shadow != null)
-                {
-                    dist = Vector2.Distance(transform.position, shadow.transform.position);
-                    if (dist <= detectionRadius) inRange = true;
-                }
-            }
+            float currentLimit = _isCurrentlyInRange ? (detectionRadius + exitHysteresis) : detectionRadius;
+            bool nowInRange = (minDist <= currentLimit);
 
             string prompt = "";
-            if (inRange)
+            if (nowInRange)
             {
                 foreach (var interactable in _interactables)
                 {
+                    if (interactable == null) continue;
                     string p = interactable.GetInteractPrompt();
                     if (!string.IsNullOrEmpty(p)) { prompt = p; break; }
                 }
                 
-                // Fallback to text in TMP component
                 if (string.IsNullOrEmpty(prompt) && instructionText != null) 
                 {
                     if (alwaysShowOnRange || !string.IsNullOrEmpty(instructionText.text))
@@ -132,31 +137,42 @@ namespace Flyfe.UI
                 }
             }
 
-            _shouldBeVisible = inRange && !string.IsNullOrEmpty(prompt);
+            bool wantVisible = nowInRange && !string.IsNullOrEmpty(prompt);
 
-            // Log if requested and in range
-            if (showDebugLogs && inRange)
+            // Flicker Prevention: If we just turned on, stay on for at least MIN_VISIBLE_TIME
+            if (wantVisible && !_shouldBeVisible)
             {
-                Debug.Log($"[{name}] Range: {dist:F1}. Visible: {_shouldBeVisible}. Prompt: '{prompt}'");
+                _flickerPreventionTimer = MIN_VISIBLE_TIME;
             }
 
-            // 2. Handle Visual State
+            if (!wantVisible && _flickerPreventionTimer > 0)
+            {
+                wantVisible = true;
+            }
+
+            _shouldBeVisible = wantVisible;
+            _isCurrentlyInRange = nowInRange;
+
+            // Log if requested and in range
+            if (showDebugLogs && _isCurrentlyInRange)
+            {
+                Debug.Log($"[{name}] Range: {minDist:F1}. Visible: {_shouldBeVisible}. Prompt: '{prompt}'");
+            }
+
+            // 3. Handle Visual State
             if (_shouldBeVisible)
             {
                 if (!visualContainer.activeSelf) visualContainer.SetActive(true);
                 
                 _animTimer += Time.deltaTime;
 
-                // Sync text content
                 if (instructionText != null && instructionText.text != prompt)
                 {
                     instructionText.text = prompt;
                 }
 
-                // Billboard
                 visualContainer.transform.rotation = Quaternion.identity;
 
-                // Bobbing
                 if (useBobbing)
                 {
                     Vector3 bPos = _authoredLocalPos;
@@ -164,7 +180,6 @@ namespace Flyfe.UI
                     visualContainer.transform.localPosition = bPos;
                 }
 
-                // Breathing
                 if (useBreathing)
                 {
                     float pulse = 1f + (Mathf.Sin(_animTimer * breatheSpeed) * breatheScale);
@@ -172,12 +187,11 @@ namespace Flyfe.UI
                 }
             }
 
-            // 3. Handle Fading
+            // 4. Handle Fading
             float targetAlpha = _shouldBeVisible ? 1f : 0f;
             _currentAlpha = Mathf.MoveTowards(_currentAlpha, targetAlpha, Time.deltaTime * fadeSpeed);
             if (_canvasGroup != null) _canvasGroup.alpha = _currentAlpha;
 
-            // Deactivate when invisible
             if (_currentAlpha <= 0f && !_shouldBeVisible && visualContainer.activeSelf)
             {
                 visualContainer.SetActive(false);
